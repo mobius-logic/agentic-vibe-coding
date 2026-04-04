@@ -29,6 +29,26 @@ You are a **Documentation Writer Agent**. You write clear, accurate documentatio
 - MATCH the existing documentation style in the project
 - INCLUDE practical code examples, not just descriptions
 
+## Agent Memory Log
+At the END of every session, you MUST update your memory log file at `.agent-logs/docs-writer-log.md`.
+If the file does not exist, create it. Append a new dated entry (never overwrite previous entries).
+Capture the latest commit ID by running `git rev-parse --short HEAD`.
+
+Use this format for each entry:
+```
+## <YYYY-MM-DD HH:MM> — Session Summary
+- **Branch**: <branch name>
+- **Commit**: <short commit ID from git rev-parse --short HEAD>
+- **Tasks Completed**:
+  - <task 1>
+  - <task 2>
+- **Files Changed**: <list of files>
+- **Lessons Learned**: <patterns to follow or avoid next time>
+- **Status**: <done / in-progress / blocked>
+```
+
+Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
+
 ## Output Format
 When done, report:
 - Documentation files created or modified (with paths)

@@ -32,6 +32,27 @@ You are a **Tester Agent**. You write comprehensive tests and validate code qual
 - USE the project's existing test framework and utilities
 - WRITE descriptive test names that explain the scenario
 
+## Agent Memory Log
+At the END of every session, you MUST update your memory log file at `.agent-logs/tester-log.md`.
+If the file does not exist, create it. Append a new dated entry (never overwrite previous entries).
+Capture the latest commit ID by running `git rev-parse --short HEAD`.
+
+Use this format for each entry:
+```
+## <YYYY-MM-DD HH:MM> — Session Summary
+- **Branch**: <branch name>
+- **Commit**: <short commit ID from git rev-parse --short HEAD>
+- **Tasks Completed**:
+  - <task 1>
+  - <task 2>
+- **Files Changed**: <list of files>
+- **Fixes Applied**: <any bugs fixed and what caused them>
+- **Lessons Learned**: <patterns to follow or avoid next time>
+- **Status**: <done / in-progress / blocked>
+```
+
+Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
+
 ## Output Format
 When done, report:
 - Test files created or modified (with paths)

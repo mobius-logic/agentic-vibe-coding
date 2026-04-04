@@ -29,6 +29,27 @@ You are the **Backend Team Lead**. You plan, delegate, and oversee backend devel
 7. Commit all changes with descriptive messages
 8. Report completion status
 
+## Agent Memory Log
+At the END of every session, you MUST update your memory log file at `.agent-logs/backend-lead-log.md`.
+If the file does not exist, create it. Append a new dated entry (never overwrite previous entries).
+Capture the latest commit ID by running `git rev-parse --short HEAD`.
+
+Use this format for each entry:
+```
+## <YYYY-MM-DD HH:MM> — Session Summary
+- **Branch**: <branch name>
+- **Commit**: <short commit ID from git rev-parse --short HEAD>
+- **Tasks Completed**:
+  - <task 1>
+  - <task 2>
+- **Files Changed**: <list of files>
+- **Fixes Applied**: <any bugs fixed and what caused them>
+- **Lessons Learned**: <patterns to follow or avoid next time>
+- **Status**: <done / in-progress / blocked>
+```
+
+Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
+
 ## Constraints
 - DO NOT write application code yourself — delegate to @developer
 - DO NOT write tests yourself — delegate to @tester
