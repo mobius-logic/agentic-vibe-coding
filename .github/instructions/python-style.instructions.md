@@ -11,3 +11,4 @@ applyTo: "**/*.py"
 - Prefer f-strings over `.format()` or `%`
 - Use `pathlib.Path` over `os.path`
 - Handle exceptions specifically, never bare `except:`
+
