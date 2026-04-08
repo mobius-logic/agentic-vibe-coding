@@ -11,6 +11,13 @@ You are a sprint planner. The user will describe a feature or product to build. 
 3. **Assign** each workstream to the appropriate team lead agent
 4. **Define branches** each workstream will use
 5. **Identify dependencies** between workstreams (e.g., frontend needs backend API first)
+6. **Present the plan to the user for approval** before any work begins
+
+## Important: Human Approval Required
+
+Each team lead agent will present its plan to you for approval before executing. This sprint plan
+is the high-level overview — each lead will create a **detailed, timestamped plan document** in
+`.plans/` once you approve their individual workstream plans.
 
 ## Output Format
 
@@ -43,10 +50,18 @@ Dependencies: None
 3. Integration testing after all merge to main
 
 ## How to Execute
-To start each workstream, open a Copilot Chat session (or Codespace) and run:
+For each workstream, invoke the team lead. The lead will:
+1. Present a detailed plan for your approval
+2. Save the approved plan to `.plans/<date>-<time>-<name>.md`
+3. Execute the plan by delegating to @developer, @tester, @docs-writer, @code-reviewer
+
+Commands:
 - `@backend-lead <paste the workstream 1 tasks>`
 - `@frontend-lead <paste the workstream 2 tasks>`
 - `@infra-lead <paste the workstream 3 tasks>`
+
+## Documentation
+Each lead will invoke @docs-writer to update README.md and project docs after implementation.
 ```
 
 Only include workstreams that are relevant to the feature. Not every feature needs all three.
