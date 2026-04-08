@@ -30,7 +30,9 @@ function Write-Warn  { param([string]$Msg) Write-Host "[sync] $Msg" -ForegroundC
 function Write-Err   { param([string]$Msg) Write-Host "[sync] $Msg" -ForegroundColor Red }
 
 # ── Pre-flight checks ───────────────────────────────────────────────────────
+$ErrorActionPreference = "SilentlyContinue"
 $isGitRepo = git rev-parse --is-inside-work-tree 2>$null
+$ErrorActionPreference = "Stop"
 if ($LASTEXITCODE -ne 0) {
     Write-Err "Not inside a Git repository. Run this from your project root."
     exit 1
@@ -43,8 +45,11 @@ if ($dirty) {
 }
 
 # ── 1. Configure upstream remote ────────────────────────────────────────────
+$ErrorActionPreference = "SilentlyContinue"
 $currentUrl = git remote get-url $UpstreamRemote 2>$null
-if ($LASTEXITCODE -eq 0) {
+$remoteExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($remoteExitCode -eq 0) {
     Write-Info "Upstream remote already exists: $currentUrl"
     if ($TemplateUrl -and $currentUrl -ne $TemplateUrl) {
         Write-Warn "Updating upstream URL to: $TemplateUrl"
@@ -61,8 +66,11 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # ── 2. Configure the "ours" merge driver ────────────────────────────────────
+$ErrorActionPreference = "SilentlyContinue"
 $oursDriver = git config merge.ours.driver 2>$null
-if ($LASTEXITCODE -ne 0) {
+$oursExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($oursExitCode -ne 0) {
     Write-Info "Configuring 'ours' merge driver..."
     git config merge.ours.driver true
 } else {
@@ -80,7 +88,9 @@ if ($LASTEXITCODE -ne 0) {
 # ── 4. Check if there are changes to merge ──────────────────────────────────
 $localHead = git rev-parse HEAD
 $upstreamHead = git rev-parse "$UpstreamRemote/$UpstreamBranch"
+$ErrorActionPreference = "SilentlyContinue"
 $mergeBase = git merge-base HEAD "$UpstreamRemote/$UpstreamBranch" 2>$null
+$ErrorActionPreference = "Stop"
 
 if ($localHead -eq $upstreamHead) {
     Write-Info "Already up to date with upstream template."
