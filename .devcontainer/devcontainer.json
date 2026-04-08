@@ -16,6 +16,6 @@
       }
     }
   },
-  "postCreateCommand": "echo 'Agentic coding environment ready. Open Copilot Chat and use @backend-lead, @frontend-lead, or @infra-lead to start.'",
+  "postCreateCommand": "echo 'Agentic coding environment ready. Open Copilot Chat and use @architect to design your system, or @backend-lead, @frontend-lead, @infra-lead to start a workstream.'",
   "remoteUser": "codespace"
 }

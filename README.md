@@ -27,16 +27,18 @@ _Replace this section with your API documentation (if applicable)._
 
 This project uses a multi-agent workflow powered by GitHub Copilot. To contribute:
 
-1. Invoke a team lead agent (`@backend-lead`, `@frontend-lead`, or `@infra-lead`)
-2. The lead will present a plan for your approval
-3. Once approved, the plan is saved to `.plans/` and execution begins
-4. Agents delegate to `@developer`, `@tester`, `@docs-writer`, and `@code-reviewer`
-5. See [TEMPLATE-GUIDE.md](TEMPLATE-GUIDE.md) for the full workflow
+1. Start with `@architect` to design the system architecture for a new project
+2. The architect interviews you, produces an architecture document, and decomposes into workstream briefs
+3. Hand the workstream briefs to team leads (`@backend-lead`, `@frontend-lead`, `@infra-lead`) — or let the architect delegate directly
+4. Each lead presents a detailed plan for your approval, then delegates to subagents
+5. Agents delegate to `@developer`, `@tester`, `@docs-writer`, and `@code-reviewer`
+6. See [TEMPLATE-GUIDE.md](TEMPLATE-GUIDE.md) for the full workflow
 
 ### Agent Team
 
 | Agent | Role | Invocable? |
 |-------|------|:----------:|
+| `@architect` | Designs system architecture, decomposes into workstreams | Yes |
 | `@backend-lead` | Plans and delegates backend work | Yes |
 | `@frontend-lead` | Plans and delegates frontend/UI work | Yes |
 | `@infra-lead` | Plans and delegates infrastructure/DevOps work | Yes |

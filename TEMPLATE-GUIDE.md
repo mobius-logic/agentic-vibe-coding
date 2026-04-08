@@ -15,13 +15,19 @@ and docs writers keep documentation current.
 
 This guide sets up a **multi-agent coding team** where specialized GitHub Copilot agents
 collaborate across Git branches to produce a working product. Each agent has a defined role
-(team lead, developer, tester, reviewer) with restricted tools and focused instructions.
+(architect, team lead, developer, tester, reviewer) with restricted tools and focused instructions.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   ORCHESTRATOR (You)                    │
-│            Uses /plan-sprint prompt to kick off         │
+│          Uses @architect to design the system           │
 │                                                         │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │                   ARCHITECT                       │  │
+│  │   Interviews you → Designs architecture → Produces│  │
+│  │   workstream briefs for each team lead            │  │
+│  └────┬─────────────┬─────────────┬──────────────────┘  │
+│       │             │             │                     |
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
 │  │ Team Lead│  │ Team Lead│  │ Team Lead│  .agent.md    │
 │  │ (Backend)│  │(Frontend)│  │  (Infra) │  files        │
@@ -49,11 +55,13 @@ collaborate across Git branches to produce a working product. Each agent has a d
 1. Clone or fork this repo as the base for your new project
 2. Open VS Code with GitHub Copilot Chat installed
 3. Open Copilot Chat and select an agent from the agent picker:
+   - `@architect` — **Start here for new projects.** Designs system architecture through iterative discussion
    - `@backend-lead` — Plans and delegates backend work
    - `@frontend-lead` — Plans and delegates frontend/UI work
    - `@infra-lead` — Plans and delegates infrastructure/DevOps work
    - `@code-reviewer` — Reviews code changes on a branch
 4. Or use a slash command:
+   - `/design-architecture` — Iteratively design a system architecture for a new project
    - `/plan-sprint` — Break a feature into assigned workstreams
    - `/implement-feature` — Direct a lead to implement something
    - `/run-tests` — Run tests on a branch
@@ -69,6 +77,7 @@ collaborate across Git branches to produce a working product. Each agent has a d
 
 | Agent | Role | You invoke? | Tools |
 |-------|------|:-----------:|-------|
+| `@architect` | Interviews you, designs system architecture, decomposes into workstream briefs | Yes | Read, search, web, todo, askQuestions + lead subagents |
 | `@backend-lead` | Plans backend work, creates branches, delegates | Yes | All + subagents |
 | `@frontend-lead` | Plans frontend work, creates branches, delegates | Yes | All + subagents |
 | `@infra-lead` | Plans infra/DevOps work, delegates | Yes | All + subagents |
@@ -79,24 +88,44 @@ collaborate across Git branches to produce a working product. Each agent has a d
 
 ## Planning Workflow (Human-in-the-Loop)
 
-All team leads follow a **two-phase workflow**:
+### Recommended: Start with the Architect
 
-### Phase 1: Plan Approval
+For new projects, **start with `@architect`** rather than going directly to team leads.
+The architect-first workflow ensures a coherent system design before any code is written.
+
+#### Architect Workflow
+1. You describe your project/application to `@architect` (e.g., `@architect "I want to build a task management SaaS app"`)
+2. The architect **interviews you** in iterative rounds — scope, users, tech preferences, scale, security
+3. After each round, the architect summarizes what was learned and confirms with you
+4. The architect produces a **System Architecture Document** covering all layers (frontend, backend, data, infra)
+5. You **approve, revise, or reject** the architecture
+6. The approved architecture is saved to `.plans/<date>-<time>-architecture-<name>.md`
+7. The architect **decomposes the architecture into workstream task briefs** — one per team lead
+8. You choose:
+   - **Manual delegation**: Copy-paste each task brief into a separate Copilot Chat session or Codespace
+   - **Automated delegation**: Tell the architect to invoke the team leads directly
+
+#### Direct Team Lead Workflow (Skip Architect)
+
+For smaller features or when you already know the architecture, you can skip the architect and go directly to team leads:
+
 1. You describe a feature to a team lead (e.g., `@backend-lead "Add JWT authentication"`)
 2. The lead analyzes the request and presents a **draft plan** with tasks, files, and branches
 3. The lead asks you to **approve, modify, or reject** the plan
 4. You iterate until the plan is right
 5. The approved plan is saved to `.plans/<date>-<time>-<name>.md` for reference
 
-### Phase 2: Execution
+### Execution Phase (Same for Both Workflows)
 6. The lead creates a feature branch and delegates to subagents
 7. Each subagent receives the **plan reference** so they understand context
 8. After coding → testing → docs → review, the lead reports completion
 
-### Referencing Plans
-- All approved plans live in `.plans/` with date-timestamps
-- Agent logs reference which plan they worked on
+### Referencing Plans and Architecture Documents
+- All approved architectures and plans live in `.plans/` with date-timestamps
+- Architecture documents are prefixed with `architecture-` for easy identification
+- Agent logs reference which plan/architecture they worked on
 - You can share plan file paths when communicating with agents across sessions
+- Team leads should reference the architecture document when making implementation decisions
 
 ## Repository Structure
 
@@ -115,7 +144,7 @@ All team leads follow a **two-phase workflow**:
 
 ## Orchestrator Runbook (What YOU Do)
 
-You are the human orchestrator. Agents write code — you control planning approval, branching, merging, and phasing.
+You are the human orchestrator. Agents write code — you control architecture approval, planning approval, branching, merging, and phasing.
 
 ### Initial Setup (Once)
 
@@ -128,13 +157,24 @@ git push origin main
 
 Then protect `main` on GitHub: **Settings → Branches → Add rule → Require PR reviews**.
 
+### Phase 0: Architecture Design (Recommended for New Projects)
+
+| Step | You Do |
+|------|--------|
+| 1 | Open Copilot Chat and invoke `@architect` with your project description |
+| 2 | Answer the architect's interview questions (scope, users, tech, scale, security) |
+| 3 | Review the proposed **System Architecture Document** |
+| 4 | Request changes or **approve** the architecture |
+| 5 | Review the **workstream task briefs** the architect produces |
+| 6 | Choose: copy-paste briefs to separate sessions, or tell the architect to delegate |
+
 ### Phase 1: Parallel Workstreams (e.g. Infra + Backend)
 
 | Step | You Do |
 |------|--------|
-| 1 | Open **Codespace A** (or local VS Code) — invoke `@infra-lead` with your request |
+| 1 | Open **Codespace A** (or local VS Code) — invoke `@infra-lead` with the architect's task brief (or your own request) |
 | 2 | **Review and approve the plan** the lead presents to you |
-| 3 | Open **Codespace B** — invoke `@backend-lead` with your request |
+| 3 | Open **Codespace B** — invoke `@backend-lead` with the architect's task brief |
 | 4 | **Review and approve the plan** |
 | 5 | Wait for each agent to finish executing the approved plans |
 | 6 | Review the output (skim files, check agent's completion summary) |
@@ -177,9 +217,10 @@ git push origin feature/backend/simulation-core --force-with-lease
 
 Run agents sequentially:
 ```
-@infra-lead → approve plan → wait → push → PR → merge → git pull
-@backend-lead → approve plan → wait → push → PR → merge → git pull
-@frontend-lead → approve plan → wait → push → PR → merge → git pull
+@architect → interview → approve architecture → get workstream briefs
+@infra-lead → paste brief → approve plan → wait → push → PR → merge → git pull
+@backend-lead → paste brief → approve plan → wait → push → PR → merge → git pull
+@frontend-lead → paste brief → approve plan → wait → push → PR → merge → git pull
 @code-reviewer → review
 ```
 
@@ -187,12 +228,15 @@ Run agents sequentially:
 
 | Situation | What to do |
 |-----------|-----------|
+| Starting a new project | Use `@architect` to design the architecture first |
+| Architect presents architecture | Review carefully, ask questions, then approve |
+| Architect produces workstream briefs | Copy each brief to a separate session or tell architect to delegate |
 | Agent presents a plan | Review it carefully, suggest changes, then approve |
 | Agent says "done" | Check `git log`, skim files, then `git push origin <branch>` |
 | Agent made a mistake | Tell it what's wrong in the same chat session |
 | Tests fail | Tell the agent "tests are failing, fix them" |
 | Agent asks a question | Answer it — you're the product owner |
-| Need to reference prior work | Check `.plans/` for approved plans, `.agent-logs/` for session logs |
+| Need to reference prior work | Check `.plans/` for architecture docs and approved plans, `.agent-logs/` for session logs |
 | Merge conflict | `git fetch origin && git rebase origin/main` on the conflicting branch |
 | Agent's work log is wrong | Check `.agent-logs/` for the agent's memory file |
 

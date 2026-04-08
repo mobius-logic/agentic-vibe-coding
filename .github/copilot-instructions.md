@@ -12,9 +12,11 @@
 - Types: feat, fix, docs, test, refactor, chore
 
 ## Planning Workflow
+- For new projects, start with `@architect` to design the system architecture before tasking leads
+- The architect iteratively interviews the human, produces architecture documents, and decomposes into workstream briefs
 - Team leads MUST present plans to the human user for approval before execution
-- Approved plans are saved to `.plans/` with date-timestamped filenames
-- All agents must reference the relevant plan file in their work and logs
+- Approved plans and architecture documents are saved to `.plans/` with date-timestamped filenames
+- All agents must reference the relevant plan/architecture file in their work and logs
 - Plans are immutable after approval — they serve as the source of truth
 
 ## Code Quality
@@ -27,6 +29,7 @@
 - Team leads MUST invoke @docs-writer after implementation to update project documentation
 - `README.md` contains project-specific documentation (features, setup, usage)
 - `TEMPLATE-GUIDE.md` contains template usage instructions — do not overwrite
+- Architecture documents in `.plans/` serve as canonical design references
 - Agent logs in `.agent-logs/` must include plan references and full timestamps
 
 ## Collaboration
