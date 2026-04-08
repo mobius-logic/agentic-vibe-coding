@@ -52,7 +52,7 @@ collaborate across Git branches to produce a working product. Each agent has a d
 ## Quick Start
 
 ### In VS Code (Local)
-1. Clone or fork this repo as the base for your new project
+1. Create a new repo using **"Use this template"** on GitHub (see [Template Inheritance](#template-inheritance)), then clone it locally
 2. Open VS Code with GitHub Copilot Chat installed
 3. Open Copilot Chat and select an agent from the agent picker:
    - `@architect` — **Start here for new projects.** Designs system architecture through iterative discussion
@@ -68,7 +68,7 @@ collaborate across Git branches to produce a working product. Each agent has a d
    - `/review-and-merge` — Get a code review
 
 ### In GitHub Codespaces (Parallel Agents)
-1. Push this repo to GitHub
+1. Create a new repo using **"Use this template"** on GitHub
 2. Open **Code** → **Codespaces** → **Create codespace**
 3. The devcontainer auto-installs Copilot and configures the environment
 4. Open multiple Codespaces for parallel workstreams on different branches
@@ -135,11 +135,16 @@ For smaller features or when you already know the architecture, you can skip the
 ├── prompts/          # Slash command workflows
 ├── instructions/     # File-type coding standards
 ├── hooks/            # Safety gates (blocks dangerous commands)
+├── workflows/        # CI/CD and template sync automation
 └── copilot-instructions.md  # Project-wide standards
 .devcontainer/
 └── devcontainer.json # Codespaces environment
 .agent-logs/          # Agent session logs (auto-generated)
 .plans/               # Approved plan documents (auto-generated)
+scripts/
+├── sync-template.sh  # Bash sync script (Linux/macOS/Codespaces)
+└── sync-template.ps1 # PowerShell sync script (Windows)
+.gitattributes        # Merge strategies for template inheritance
 ```
 
 ## Orchestrator Runbook (What YOU Do)
@@ -148,14 +153,24 @@ You are the human orchestrator. Agents write code — you control architecture a
 
 ### Initial Setup (Once)
 
-```bash
-# Push repo to GitHub
-git add -A
-git commit -m "chore: initial agentic team scaffold"
-git push origin main
-```
+1. **Create your project repo** from the template:
+   - On GitHub, navigate to your org's `agentic-vibe-coding` template repo
+   - Click **"Use this template" → "Create a new repository"**
+   - Choose your org, name the repo, and set visibility
 
-Then protect `main` on GitHub: **Settings → Branches → Add rule → Require PR reviews**.
+2. **Clone and connect to the upstream template** for future updates:
+   ```bash
+   git clone https://github.com/YOUR_ORG/my-new-project.git
+   cd my-new-project
+
+   # Connect to template for ongoing updates (bash/macOS/Linux)
+   ./scripts/sync-template.sh https://github.com/YOUR_ORG/agentic-vibe-coding.git
+
+   # Or on Windows PowerShell
+   .\scripts\sync-template.ps1 -TemplateUrl "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+   ```
+
+3. **Protect `main`** on GitHub: **Settings → Branches → Add rule → Require PR reviews**.
 
 ### Phase 0: Architecture Design (Recommended for New Projects)
 
@@ -273,12 +288,158 @@ These provide a traceable record of what was planned and approved, and are refer
 
 ## Adapting This Template for Your Project
 
-1. Fork/clone this repo
+1. Use **"Use this template"** on GitHub to create a new repo (see [Template Inheritance](#template-inheritance) below)
 2. Update `README.md` with **your** project's name, description, and usage instructions
 3. Keep `TEMPLATE-GUIDE.md` as a reference for how the agentic workflow operates
 4. Customize agent definitions in `.github/agents/` for your tech stack
 5. Start invoking agents — they will update `README.md` with project-specific docs as they build
 
-## License
+---
 
-MIT
+## Template Inheritance
+
+This repo is designed to be a **living template**: child projects created from it can
+continuously pull in improvements to agents, hooks, prompts, and tooling — without
+overwriting their project-specific plans, logs, or documentation.
+
+### How It Works
+
+```
+┌──────────────────────────────┐
+│   Template Repo (upstream)   │  ← Org maintains agents, 
+|                              |     hooks, prompts
+│  github.com/mobiuslogic/     │
+│       agentic-vibe-coding    │
+└──────────┬───────────────────┘
+           │  one-way sync (pull only)
+           ▼
+┌──────────────────────────────┐
+│   Child Project Repo         │  ← Team's project code + 
+|                              |      plans + logs
+│  github.com/ORG/my-project   │
+└──────────────────────────────┘
+```
+
+| What syncs (from template) | What is protected (project-specific) |
+|---|---|
+| `.github/agents/` | `.plans/` |
+| `.github/hooks/` | `.agent-logs/` |
+| `.github/prompts/` | `README.md` |
+| `.github/instructions/` | All project source code |
+| `.github/copilot-instructions.md` | |
+| `.devcontainer/` | |
+| `TEMPLATE-GUIDE.md` | |
+| `scripts/` | |
+
+### One-Time Setup (Org Admin)
+
+1. **Mark this repo as a GitHub Template**:
+   - Go to **Settings → General** on the template repo
+   - Check **"Template repository"**
+   - This enables the **"Use this template"** button for your org
+
+2. **Set repo visibility** to Internal (org-wide) or Public as needed
+
+### Creating a New Project from the Template
+
+1. On GitHub, navigate to the template repo
+2. Click **"Use this template" → "Create a new repository"**
+3. Choose your org, name the repo, set visibility
+4. Clone the new repo locally
+
+> **Why "Use this template" instead of Fork?**
+> Template repos create a **clean copy** with no fork relationship — no accidental
+> PRs back to the template, clean commit history, and the child repo is fully independent.
+
+### Connecting to the Upstream Template
+
+After creating from the template, connect the child repo so it can pull future updates:
+
+**Bash / Git Bash / macOS / Linux / Codespaces:**
+```bash
+# First run — supply the template URL
+./scripts/sync-template.sh https://github.com/YOUR_ORG/agentic-vibe-coding.git
+
+# Subsequent runs — URL is remembered
+./scripts/sync-template.sh
+```
+
+**PowerShell (Windows):**
+```powershell
+# First run — supply the template URL
+.\scripts\sync-template.ps1 -TemplateUrl "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+
+# Subsequent runs — URL is remembered
+.\scripts\sync-template.ps1
+```
+
+The sync script:
+1. Adds or verifies the `upstream` remote
+2. Configures the `ours` merge driver to protect project-specific files
+3. Fetches and merges the latest template changes
+4. Leaves `.plans/`, `.agent-logs/`, and `README.md` untouched
+
+### Automated Sync via GitHub Actions (Optional)
+
+For hands-off updates, enable the included workflow in your child repo:
+
+1. Edit `.github/workflows/sync-template.yml`
+2. Set the `TEMPLATE_REPO` variable to your org's template URL:
+   ```yaml
+   env:
+     TEMPLATE_REPO: "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+   ```
+3. The workflow runs **weekly on Mondays at 09:00 UTC** (configurable via cron)
+4. When updates are found, it creates a **pull request** for your team to review
+5. You can also trigger it manually via **Actions → Sync Template Updates → Run workflow**
+
+The PR includes a checklist and shows exactly what changed. Project-specific files
+are automatically protected.
+
+### How File Protection Works
+
+The `.gitattributes` file uses Git's merge driver system:
+
+```gitattributes
+.plans/**        merge=ours
+.agent-logs/**   merge=ours
+README.md        merge=ours
+```
+
+When `merge=ours` is configured (`git config merge.ours.driver true` — the sync scripts
+do this automatically), Git keeps **your local version** of these paths during any merge
+from upstream, even if the template has different content in those paths.
+
+### Workflow Summary
+
+```
+Org Admin (once):
+  Template repo → Settings → ✅ Template repository
+
+New Project:
+  "Use this template" → clone → ./scripts/sync-template.sh <URL>
+
+Ongoing Updates (choose one):
+  Manual:    ./scripts/sync-template.sh
+  Automated: GitHub Actions creates PRs weekly
+```
+
+### FAQ
+
+**Q: What if I customized an agent file and the template also changed it?**
+A: You'll get a normal merge conflict. Git will show both versions and you choose
+which changes to keep. The sync script warns you when this happens.
+
+**Q: Can a child repo push changes back to the template?**
+A: No. The `upstream` remote is read-only by design (created via HTTPS clone URL).
+There is no fork relationship, so GitHub won't suggest PRs back to the template.
+
+**Q: What if I never want automated syncing?**
+A: Delete `.github/workflows/sync-template.yml` from your child repo. You can always
+run the sync script manually when you want updates.
+
+**Q: Can I sync only specific paths (e.g., just agents)?**
+A: The merge-based approach syncs everything the template changed. If you need more
+granular control, you can `git merge --no-commit` then selectively `git checkout HEAD -- <path>`
+to revert specific files before committing.
+
