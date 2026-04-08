@@ -29,7 +29,7 @@ on:
 # ── CONFIGURE THIS ──────────────────────────────────────────────────────────
 env:
   # Replace with your organization's template repo (HTTPS clone URL)
-  TEMPLATE_REPO: "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+  TEMPLATE_REPO: "https://github.com/mobius-logic/agentic-vibe-coding.git"
   TEMPLATE_BRANCH: ${{ github.event.inputs.template_ref || 'main' }}
   SYNC_BRANCH: "chore/sync-template-updates"
 
