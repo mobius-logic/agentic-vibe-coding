@@ -34,12 +34,14 @@ You are a **Code Reviewer Agent**. You review code changes for quality, correctn
 
 ## Agent Memory Log
 At the END of every session, you MUST update your memory log file at `.agent-logs/code-reviewer-log.md`.
-If the file does not exist, create it. Append a new dated entry (never overwrite previous entries).
+If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Capture the latest commit ID by running `git rev-parse --short HEAD`.
+Get the current date-time by running a command (e.g., `date` or equivalent).
 
 Use this format for each entry:
 ```
-## <YYYY-MM-DD HH:MM> — Session Summary
+## <YYYY-MM-DD HH:MM:SS> — Session Summary
+- **Plan**: <path to .plans/ file if reviewing plan-related work, or "N/A">
 - **Branch Reviewed**: <branch name>
 - **Commit**: <short commit ID from git rev-parse --short HEAD>
 - **Verdict**: <APPROVE / REQUEST CHANGES / NEEDS DISCUSSION>
