@@ -358,7 +358,7 @@ After creating from the template, connect the child repo so it can pull future u
 **Bash / Git Bash / macOS / Linux / Codespaces:**
 ```bash
 # First run — supply the template URL
-./scripts/sync-template.sh https://github.com/YOUR_ORG/agentic-vibe-coding.git
+./scripts/sync-template.sh https://github.com/mobius-logic/agentic-vibe-coding.git
 
 # Subsequent runs — URL is remembered
 ./scripts/sync-template.sh
@@ -367,7 +367,7 @@ After creating from the template, connect the child repo so it can pull future u
 **PowerShell (Windows):**
 ```powershell
 # First run — supply the template URL
-.\scripts\sync-template.ps1 -TemplateUrl "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+.\scripts\sync-template.ps1 -TemplateUrl "https://github.com/mobius-logic/agentic-vibe-coding.git"
 
 # Subsequent runs — URL is remembered
 .\scripts\sync-template.ps1
@@ -387,7 +387,7 @@ For hands-off updates, enable the included workflow in your child repo:
 2. Set the `TEMPLATE_REPO` variable to your org's template URL:
    ```yaml
    env:
-     TEMPLATE_REPO: "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+     TEMPLATE_REPO: "https://github.com/mobius-logic/agentic-vibe-coding.git"
    ```
 3. The workflow runs **weekly on Mondays at 09:00 UTC** (configurable via cron)
 4. When updates are found, it creates a **pull request** for your team to review
