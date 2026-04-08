@@ -55,9 +55,13 @@ This project uses a multi-agent workflow powered by GitHub Copilot. To contribut
 ├── prompts/          # Slash command workflows
 ├── instructions/     # File-type coding standards
 ├── hooks/            # Safety gates
+├── workflows/        # CI/CD and template sync automation
 └── copilot-instructions.md  # Project-wide standards
+.devcontainer/        # Codespaces environment
 .agent-logs/          # Agent session logs
 .plans/               # Approved plan documents
+scripts/              # Sync tooling (template updates)
+.gitattributes        # Merge strategies for template inheritance
 ```
 
 ## License
