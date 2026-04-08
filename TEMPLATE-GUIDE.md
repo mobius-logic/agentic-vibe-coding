@@ -11,6 +11,38 @@ and GitHub Codespaces. Specialized AI agents collaborate across Git branches —
 plan and delegate, developers write code, testers validate, reviewers gatekeep quality,
 and docs writers keep documentation current.
 
+## Architecture Overview
+
+This guide sets up a **multi-agent coding team** where specialized GitHub Copilot agents
+collaborate across Git branches to produce a working product. Each agent has a defined role
+(team lead, developer, tester, reviewer) with restricted tools and focused instructions.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   ORCHESTRATOR (You)                    │
+│            Uses /plan-sprint prompt to kick off         │
+│                                                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
+│  │ Team Lead│  │ Team Lead│  │ Team Lead│  .agent.md    │
+│  │ (Backend)│  │(Frontend)│  │  (Infra) │  files        │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘               │
+│       │             │             │                     │
+│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐               │
+│  │Developer │  │Developer │  │Developer │  subagents    │
+│  │  Agent   │  │  Agent   │  │  Agent   │               │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘               │
+│       │             │             │                     │
+│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐               │
+│  │  Tester  │  │  Tester  │  │  Tester  │  subagents    │
+│  │  Agent   │  │  Agent   │  │  Agent   │               │
+│  └──────────┘  └──────────┘  └──────────┘               │
+│                                                         │
+│  ┌──────────┐  ┌──────────┐                             │
+│  │Code      │  │  Docs    │  cross-cutting agents       │
+│  │Reviewer  │  │  Writer  │                             │
+│  └──────────┘  └──────────┘                             │
+└─────────────────────────────────────────────────────────┘
+```
 ## Quick Start
 
 ### In VS Code (Local)
