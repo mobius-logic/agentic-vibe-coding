@@ -1,0 +1,7 @@
+{"ts":"2026-04-09T14:30:00Z","agent":"backend-lead","event":"spawned","branch":"feature/backend/auth","plan":".plans/2026-04-09-sample.md"}
+{"ts":"2026-04-09T14:30:05Z","agent":"backend-lead","event":"plan-loaded","plan":".plans/2026-04-09-sample.md","taskTotal":3}
+{"ts":"2026-04-09T14:31:00Z","agent":"backend-lead","event":"task-started","task":"Implement JWT middleware","taskIndex":1,"taskTotal":3}
+{"ts":"2026-04-09T14:35:00Z","agent":"backend-lead","event":"task-completed","task":"Implement JWT middleware","taskIndex":1,"taskTotal":3}
+{"ts":"2026-04-09T14:35:30Z","agent":"backend-lead","event":"subagent-invoked","detail":"developer"}
+{"ts":"2026-04-09T14:36:00Z","agent":"developer","event":"spawned","branch":"feature/backend/auth"}
+{"ts":"2026-04-09T14:40:00Z","agent":"developer","event":"session-complete"}

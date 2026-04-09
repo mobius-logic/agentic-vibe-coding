@@ -150,7 +150,9 @@ For smaller features or when you already know the architecture, you can go direc
 .devcontainer/
 └── devcontainer.json # Codespaces environment
 .agent-logs/          # Agent session logs (auto-generated)
+.agent-events/        # Structured agent event logs (JSONL, auto-generated)
 .plans/               # Approved plan documents (auto-generated)
+dashboard/            # Agent Monitor Dashboard (web UI)
 scripts/
 ├── sync-template.sh  # Bash sync script (Linux/macOS/Codespaces)
 └── sync-template.ps1 # PowerShell sync script (Windows)
@@ -174,10 +176,10 @@ You are the human orchestrator. Agents write code — you control architecture a
    cd my-new-project
 
    # Connect to template for ongoing updates (bash/macOS/Linux)
-   ./scripts/sync-template.sh https://github.com/YOUR_ORG/agentic-vibe-coding.git
+   ./scripts/sync-template.sh https://github.com/mobius-logic/agentic-vibe-coding.git
 
    # Or on Windows PowerShell
-   .\scripts\sync-template.ps1 -TemplateUrl "https://github.com/YOUR_ORG/agentic-vibe-coding.git"
+   .\scripts\sync-template.ps1 -TemplateUrl "https://github.com/mobius-logic/agentic-vibe-coding.git"
    ```
 
 3. **Protect `main`** on GitHub: **Settings → Branches → Add rule → Require PR reviews**.
@@ -289,6 +291,103 @@ Approved plans are saved to `.plans/` with date-timestamped filenames:
 
 These provide a traceable record of what was planned and approved, and are referenced by agents throughout execution.
 
+## Agent Monitor Dashboard
+
+An optional web-based dashboard that gives you real-time visibility into agent activity — which agents are active, what branches they're working on, task progress, and a live event timeline.
+
+### Quick Start
+
+```bash
+# From your project root
+node dashboard/start.js
+
+# Or open the browser automatically
+node dashboard/start.js --open
+
+# Custom port
+node dashboard/start.js --port 8080
+```
+
+The dashboard opens at **http://127.0.0.1:4820** and auto-refreshes every 3 seconds.
+
+### What It Shows
+
+| Panel | Description |
+|-------|-------------|
+| **Summary Bar** | Active agent count, branch count, task completion, event count |
+| **Agent Cards** | Each agent with status (active/working/completed/idle), current branch, task progress bar |
+| **Branch Status** | All feature/fix branches with their status, last commit, and date |
+| **Plans** | Plans from `.plans/` with task completion progress |
+| **Event Timeline** | Chronological feed of all agent events |
+
+### How It Works
+
+The dashboard reads data from three sources — all already part of the template:
+
+1. **`.agent-logs/*.md`** — Human-readable session logs (existing)
+2. **`.plans/*.md`** — Approved plan documents (existing)
+3. **Git branches** — Local and remote branch data (existing)
+4. **`.agent-events/events.jsonl`** — Structured machine-readable events (new, optional)
+
+The dashboard **works without any events being emitted** — it still shows git branches, plans, and agent logs. The event stream adds richer real-time data.
+
+### Agent Event Format
+
+Agents can optionally write structured events to `.agent-events/events.jsonl` (one JSON object per line):
+
+```json
+{
+  "ts": "2026-04-09T14:30:22Z",
+  "agent": "backend-lead",
+  "event": "task-completed",
+  "branch": "feature/backend/auth",
+  "plan": ".plans/2026-04-09-auth.md",
+  "task": "Implement JWT middleware",
+  "taskIndex": 1,
+  "taskTotal": 5,
+  "status": "in-progress"
+}
+```
+
+**Event types**: `spawned`, `plan-loaded`, `task-started`, `task-completed`, `branch-created`, `branch-pushed`, `subagent-invoked`, `session-complete`, `error`
+
+### Programmatic Event Logging
+
+For agents or scripts running in a Node.js context:
+
+```javascript
+const { logAgentEvent } = require('./dashboard/lib/log-event.js');
+
+logAgentEvent({
+  agent: 'backend-lead',
+  event: 'task-completed',
+  branch: 'feature/backend/auth',
+  task: 'Implement JWT middleware',
+  taskIndex: 1,
+  taskTotal: 5,
+});
+```
+
+### Dashboard Architecture
+
+```
+Browser (localhost:4820)
+  ↕  polling GET /api/*
+Dashboard Server (Node.js, zero dependencies)
+  ↕  reads
+.agent-logs/  .plans/  .agent-events/  git branches
+```
+
+The server is a zero-dependency Node.js HTTP application. No npm install required.
+
+### Backward Compatibility
+
+- The dashboard is **purely additive** — no existing files change behavior
+- Existing projects without `dashboard/` are unaffected
+- The dashboard handles missing `.agent-events/` gracefully
+- Agent event logging is **optional** — agents still write their markdown logs as before
+- `.agent-events/` is protected by `.gitattributes` (`merge=ours`) during template sync
+
 ## Customization
 
 - Edit `.github/agents/*.agent.md` to tune agent behavior for your tech stack
@@ -318,7 +417,7 @@ overwriting their project-specific plans, logs, or documentation.
 ┌──────────────────────────────┐
 │   Template Repo (upstream)   │  ← Org maintains agents, 
 |                              |     hooks, prompts
-│  github.com/mobiuslogic/     │
+│  github.com/mobius-logic/    │
 │       agentic-vibe-coding    │
 └──────────┬───────────────────┘
            │  one-way sync (pull only)
@@ -334,10 +433,11 @@ overwriting their project-specific plans, logs, or documentation.
 |---|---|
 | `.github/agents/` | `.plans/` |
 | `.github/hooks/` | `.agent-logs/` |
-| `.github/prompts/` | `README.md` |
-| `.github/instructions/` | All project source code |
-| `.github/copilot-instructions.md` | |
+| `.github/prompts/` | `.agent-events/` |
+| `.github/instructions/` | `README.md` |
+| `.github/copilot-instructions.md` | All project source code |
 | `.devcontainer/` | |
+| `dashboard/` | |
 | `TEMPLATE-GUIDE.md` | |
 | `scripts/` | |
 

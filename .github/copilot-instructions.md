@@ -52,6 +52,13 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - **Only `@architect` may create or edit files in `.plans/`** — team leads and all other agents treat `.plans/` as read-only
 - Agent logs in `.agent-logs/` must include plan references and full timestamps
 
+## Agent Monitor Dashboard
+- An optional web-based dashboard is available at `dashboard/`
+- Launch with `node dashboard/start.js` (opens at http://127.0.0.1:4820)
+- The dashboard reads `.agent-logs/`, `.plans/`, `.agent-events/`, and git branch data
+- Agents may write structured events to `.agent-events/events.jsonl` using `dashboard/lib/log-event.js`
+- The dashboard is purely additive — it does not affect existing agent behavior
+
 ## Collaboration
 - Each workstream operates on its own feature branch
 - Use pull requests for integration to `main`

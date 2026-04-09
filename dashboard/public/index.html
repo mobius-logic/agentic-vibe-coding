@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Monitor Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>🤖 Agent Monitor Dashboard</h1>
+    </div>
+    <div class="header-right">
+      <span id="connection-status" class="status-badge status-active">● Live</span>
+      <label class="toggle-label">
+        <input type="checkbox" id="auto-refresh" checked>
+        Auto-refresh
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <!-- Summary Bar -->
+    <section id="summary-bar" class="summary-bar">
+      <div class="summary-card">
+        <div class="summary-value" id="summary-agents">—</div>
+        <div class="summary-label">Active Agents</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value" id="summary-branches">—</div>
+        <div class="summary-label">Branches</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value" id="summary-tasks">—</div>
+        <div class="summary-label">Tasks</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value" id="summary-events">—</div>
+        <div class="summary-label">Events</div>
+      </div>
+    </section>
+
+    <!-- Agent Cards -->
+    <section id="agents-section">
+      <h2>Agents</h2>
+      <div id="agents-grid" class="agents-grid">
+        <div class="empty-state">No agent activity yet. Agents will appear here when they are spawned.</div>
+      </div>
+    </section>
+
+    <!-- Branch Status -->
+    <section id="branches-section">
+      <h2>Branch Status</h2>
+      <div id="branches-table-container">
+        <table id="branches-table" class="data-table">
+          <thead>
+            <tr>
+              <th>Branch</th>
+              <th>Status</th>
+              <th>Last Commit</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="branches-tbody">
+            <tr><td colspan="4" class="empty-state">No feature branches found.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Plans -->
+    <section id="plans-section">
+      <h2>Plans</h2>
+      <div id="plans-container" class="plans-container">
+        <div class="empty-state">No plans found in .plans/ directory.</div>
+      </div>
+    </section>
+
+    <!-- Event Timeline -->
+    <section id="events-section">
+      <h2>Event Timeline</h2>
+      <div id="events-timeline" class="events-timeline">
+        <div class="empty-state">No events recorded yet. Events will appear as agents work.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Agent Monitor Dashboard — Agentic Vibe Coding Template</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

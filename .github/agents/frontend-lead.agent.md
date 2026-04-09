@@ -76,6 +76,17 @@ Use this format for each entry:
 
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
 
+## Agent Monitor Events (Optional)
+If the Agent Monitor Dashboard is set up (`dashboard/`), write structured events to `.agent-events/events.jsonl` at key milestones. Use `dashboard/lib/log-event.js` or append JSON lines directly. Events to emit:
+- `spawned` — when your session starts
+- `plan-loaded` — when you read a plan from `.plans/`
+- `branch-created` — when you create a feature branch
+- `task-started` / `task-completed` — for each task
+- `subagent-invoked` — when you call a subagent
+- `session-complete` — when you finish
+
+This is optional — the dashboard gracefully handles missing events.
+
 ## Constraints
 - DO NOT write application code yourself — delegate to @developer
 - DO NOT write tests yourself — delegate to @tester

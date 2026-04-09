@@ -59,7 +59,9 @@ This project uses a multi-agent workflow powered by GitHub Copilot. To contribut
 └── copilot-instructions.md  # Project-wide standards
 .devcontainer/        # Codespaces environment
 .agent-logs/          # Agent session logs
+.agent-events/        # Structured agent event logs (JSONL)
 .plans/               # Approved plan documents
+dashboard/            # Agent Monitor Dashboard (web UI)
 scripts/              # Sync tooling (template updates)
 .gitattributes        # Merge strategies for template inheritance
 ```

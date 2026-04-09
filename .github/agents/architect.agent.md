@@ -212,6 +212,14 @@ Use this format for each entry:
 
 Before starting work, READ your memory log to review prior sessions and continue where you left off.
 
+## Agent Monitor Events (Optional)
+If the Agent Monitor Dashboard is set up (`dashboard/`), write structured events to `.agent-events/events.jsonl` at key milestones. Use `dashboard/lib/log-event.js` or append JSON lines directly. Events to emit:
+- `spawned` — when your session starts
+- `plan-loaded` — when you save a plan to `.plans/`
+- `session-complete` — when you finish
+
+This is optional — the dashboard gracefully handles missing events.
+
 ## Constraints
 - DO NOT write application code — you design and delegate
 - DO NOT create feature branches — the team leads handle that
