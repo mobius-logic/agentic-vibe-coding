@@ -93,6 +93,13 @@ collaborate across Git branches to produce a working product. Each agent has a d
 For new projects, **start with `@architect`** rather than going directly to team leads.
 The architect-first workflow ensures a coherent system design before any code is written.
 
+> **Important: `.plans/` is architect-only.** Only `@architect` creates or edits files in `.plans/`.
+> Team leads read plans from `.plans/` for context, but log their execution details in `.agent-logs/`.
+> **Architect-first protocol:** All non-trivial changes must go through `@architect`
+> (for design/planning) or the appropriate team lead (for scoped work). If you prompt Copilot
+> directly without invoking an agent, it will remind you to route through the proper workflow.
+> This ensures all changes are planned, tracked, and logged.
+
 #### Architect Workflow
 1. You describe your project/application to `@architect` (e.g., `@architect "I want to build a task management SaaS app"`)
 2. The architect **interviews you** in iterative rounds — scope, users, tech preferences, scale, security
@@ -107,13 +114,14 @@ The architect-first workflow ensures a coherent system design before any code is
 
 #### Direct Team Lead Workflow (Skip Architect)
 
-For smaller features or when you already know the architecture, you can skip the architect and go directly to team leads:
+For smaller features or when you already know the architecture, you can go directly to team leads:
 
 1. You describe a feature to a team lead (e.g., `@backend-lead "Add JWT authentication"`)
-2. The lead analyzes the request and presents a **draft plan** with tasks, files, and branches
-3. The lead asks you to **approve, modify, or reject** the plan
-4. You iterate until the plan is right
-5. The approved plan is saved to `.plans/<date>-<time>-<name>.md` for reference
+2. The lead reads the relevant `.plans/` file (if one exists) for architectural context
+3. The lead analyzes the request and presents a **draft execution plan** with tasks, files, and branches
+4. The lead asks you to **approve, modify, or reject** the plan
+5. You iterate until the plan is right
+6. The lead logs the approved execution details in `.agent-logs/` (NOT in `.plans/`)
 
 ### Execution Phase (Same for Both Workflows)
 6. The lead creates a feature branch and delegates to subagents
@@ -122,6 +130,8 @@ For smaller features or when you already know the architecture, you can skip the
 
 ### Referencing Plans and Architecture Documents
 - All approved architectures and plans live in `.plans/` with date-timestamps
+- **Only `@architect` creates or edits files in `.plans/`** — all other agents treat `.plans/` as read-only
+- Team leads log their approved execution details and session summaries in `.agent-logs/`
 - Architecture documents are prefixed with `architecture-` for easy identification
 - Agent logs reference which plan/architecture they worked on
 - You can share plan file paths when communicating with agents across sessions

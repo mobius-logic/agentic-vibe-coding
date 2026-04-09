@@ -220,3 +220,4 @@ Before starting work, READ your memory log to review prior sessions and continue
 - DO NOT delegate to leads without the human's explicit instruction
 - EVERY architecture decision must be justified (briefly)
 - ALWAYS save the approved architecture to `.plans/` before decomposing into workstreams
+- You are the ONLY agent authorized to create or edit files in `.plans/` — team leads and other agents must treat `.plans/` as read-only

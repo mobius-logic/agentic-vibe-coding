@@ -4,6 +4,9 @@ This directory contains session logs written by each agent. Agents append to the
 at the end of every session to track completed tasks, fixes, commit IDs, plan references,
 and lessons learned.
 
+> **Team leads log their approved execution details here**, not in `.plans/`.
+> Only `@architect` writes to `.plans/`. All other agents write session logs here.
+
 ## Log Ordering
 
 Entries are ordered **oldest on top, newest at bottom** (chronological append-only).
