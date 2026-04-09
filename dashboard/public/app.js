@@ -36,6 +36,17 @@ function formatDate(dateString) {
   }
 }
 
+function timeAgo(isoString) {
+  if (!isoString) return '';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ago`;
+}
+
 function statusClass(status) {
   switch (status) {
     case 'active': return 'status-active';
@@ -65,11 +76,13 @@ function eventTypeLabel(type) {
   const labels = {
     'spawned': '🟢 spawned',
     'plan-loaded': '📋 plan loaded',
+    'plan-saved': '📋 plan saved',
     'task-started': '▶️ task started',
     'task-completed': '✅ task done',
     'branch-created': '🌿 branch created',
     'branch-pushed': '📤 branch pushed',
     'subagent-invoked': '🔗 subagent',
+    'question-asked': '❓ question',
     'session-complete': '🏁 session done',
     'error': '❌ error',
   };
@@ -100,31 +113,59 @@ function renderSummary(data) {
     data.tasks.total > 0 ? `${data.tasks.completed}/${data.tasks.total}` : '0';
   document.getElementById('summary-events').textContent =
     `${data.recentEventsCount}`;
+
+  // Activity indicator
+  const actEl = document.getElementById('summary-activity');
+  if (data.activity) {
+    const s = data.activity.status;
+    const label = s === 'very-active' ? 'Very Active' : s === 'active' ? 'Active' : s === 'light' ? 'Light' : 'Idle';
+    actEl.innerHTML = `<span class="activity-badge"><span class="activity-dot ${s}"></span> ${label}</span>`;
+  } else {
+    actEl.textContent = 'Idle';
+  }
 }
 
-function renderAgents(agents) {
+function renderAgents(agents, events) {
   const grid = document.getElementById('agents-grid');
   if (!agents || agents.length === 0) {
     grid.innerHTML = '<div class="empty-state">No agent activity yet. Agents will appear here when they are spawned.</div>';
     return;
   }
 
+  // Find latest task-started event per agent for "current task" display
+  const currentTasks = {};
+  if (events) {
+    for (const evt of events) {
+      if (evt.event === 'task-started' || evt.event === 'question-asked') {
+        currentTasks[evt.agent] = evt.task || evt.detail || '';
+      }
+      if (evt.event === 'task-completed' || evt.event === 'session-complete') {
+        delete currentTasks[evt.agent];
+      }
+    }
+  }
+
   grid.innerHTML = agents.map(agent => {
     const pct = agent.tasksTotal > 0
       ? Math.round((agent.tasksCompleted / agent.tasksTotal) * 100)
       : 0;
+    const isActive = agent.status === 'active' || agent.status === 'working';
+    const cardClass = agent.status === 'working' ? 'is-working' : (isActive ? 'is-active' : '');
+    const currentTask = currentTasks[agent.agent];
+
     return `
-      <div class="agent-card">
+      <div class="agent-card ${cardClass}">
         <div class="agent-card-header">
           <span class="agent-name">${escapeHtml(agent.agent)}</span>
           <span class="agent-icon">${agentIcon(agent.agent)}</span>
         </div>
-        <span class="status-badge ${statusClass(agent.status)}">● ${escapeHtml(agent.status)}</span>
+        <span class="status-badge ${statusClass(agent.status)}${isActive ? ' pulse-active' : ''}">● ${escapeHtml(agent.status)}</span>
         <div class="agent-meta">
           ${agent.branch ? `<span>🌿 ${escapeHtml(agent.branch)}</span>` : ''}
           ${agent.plan ? `<span>📋 ${escapeHtml(agent.plan)}</span>` : ''}
-          ${agent.lastEventTime ? `<span>🕐 ${formatTime(agent.lastEventTime)}</span>` : ''}
+          ${agent.lastEventTime ? `<span>🕐 ${timeAgo(agent.lastEventTime)}</span>` : ''}
         </div>
+        ${currentTask ? `<div class="agent-current-task">▶ ${escapeHtml(currentTask)}</div>` : ''}
         ${agent.tasksTotal > 0 ? `
           <div class="agent-progress">
             <div class="progress-bar">
@@ -136,6 +177,37 @@ function renderAgents(agents) {
       </div>
     `;
   }).join('');
+}
+
+function renderActivity(activity) {
+  // Working tree changes
+  const wtEl = document.getElementById('working-tree');
+  if (!activity || !activity.workingTreeChanges || activity.workingTreeChanges.length === 0) {
+    wtEl.innerHTML = '<div class="empty-state">No uncommitted changes.</div>';
+  } else {
+    wtEl.innerHTML = activity.workingTreeChanges.map(f => `
+      <div class="activity-item">
+        <span class="activity-type ${f.type}">${escapeHtml(f.type)}</span>
+        <span class="activity-file">${escapeHtml(f.file)}</span>
+      </div>
+    `).join('');
+  }
+
+  // Recent commits
+  const cmEl = document.getElementById('recent-commits');
+  if (!activity || !activity.recentCommits || activity.recentCommits.length === 0) {
+    cmEl.innerHTML = '<div class="empty-state">No recent commits.</div>';
+  } else {
+    cmEl.innerHTML = activity.recentCommits.map(c => `
+      <div class="commit-item">
+        <div>
+          <span class="commit-hash">${escapeHtml(c.shortHash)}</span>
+          <span class="commit-message">${escapeHtml(c.subject)}</span>
+        </div>
+        <div class="commit-meta">${escapeHtml(c.author || '')} · ${timeAgo(c.date)}${c.refs ? ` · ${escapeHtml(c.refs)}` : ''}</div>
+      </div>
+    `).join('');
+  }
 }
 
 function renderBranches(branchData) {
@@ -206,6 +278,7 @@ function renderEvents(events) {
       <span class="event-detail">
         <span class="event-type">${eventTypeLabel(evt.event)}</span>
         ${evt.task ? escapeHtml(evt.task) : ''}
+        ${evt.detail ? escapeHtml(evt.detail) : ''}
         ${evt.branch ? `<span class="branch-name">${escapeHtml(evt.branch)}</span>` : ''}
       </span>
     </div>
@@ -218,16 +291,18 @@ async function refresh() {
   const statusEl = document.getElementById('connection-status');
 
   try {
-    const [summary, agents, branches, plans, events] = await Promise.all([
+    const [summary, agents, branches, plans, events, activity] = await Promise.all([
       fetchJSON('/api/summary'),
       fetchJSON('/api/agents'),
       fetchJSON('/api/branches'),
       fetchJSON('/api/plans'),
       fetchJSON('/api/events?limit=100'),
+      fetchJSON('/api/activity'),
     ]);
 
     renderSummary(summary);
-    renderAgents(agents);
+    renderAgents(agents, events);
+    renderActivity(activity);
     renderBranches(branches);
     renderPlans(plans);
     renderEvents(events);

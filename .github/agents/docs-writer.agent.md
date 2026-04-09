@@ -1,6 +1,6 @@
 ---
 description: "Use when: writing documentation, README files, API docs, architecture docs, user guides, changelog entries. Documentation, docs writer, technical writer."
-tools: [read, search, edit]
+tools: [read, search, edit, execute]
 user-invocable: false
 ---
 
@@ -59,6 +59,16 @@ Use this format for each entry:
 ```
 
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
+
+## Agent Monitor Events (MANDATORY)
+You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
+
+**Session start**: `node dashboard/lib/emit-event.js docs-writer spawned`
+**Task started**: `node dashboard/lib/emit-event.js docs-writer task-started --task "<description>"`
+**Task completed**: `node dashboard/lib/emit-event.js docs-writer task-completed --task "<description>"`
+**Session end**: `node dashboard/lib/emit-event.js docs-writer session-complete --status done`
+
+If `dashboard/` does not exist in the project, skip this.
 
 ## Output Format
 When done, report:

@@ -420,4 +420,158 @@ footer {
     grid-template-columns: 80px 100px 1fr;
     font-size: 11px;
   }
+
+  .activity-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Activity Panels */
+.activity-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.activity-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.activity-panel h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-bright);
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.activity-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item:hover {
+  background: var(--bg-hover);
+}
+
+.activity-file {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  color: var(--accent-yellow);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-type {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.activity-type.added { color: var(--accent-green); background: rgba(78, 201, 176, 0.15); }
+.activity-type.modified { color: var(--accent-blue); background: rgba(79, 193, 255, 0.15); }
+.activity-type.deleted { color: var(--accent-red); background: rgba(244, 71, 71, 0.15); }
+
+.commit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.commit-item:last-child {
+  border-bottom: none;
+}
+
+.commit-item:hover {
+  background: var(--bg-hover);
+}
+
+.commit-hash {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--accent-purple);
+}
+
+.commit-message {
+  color: var(--text-primary);
+}
+
+.commit-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Pulsing activity indicator */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pulse-active {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.activity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.activity-dot.very-active { background: var(--accent-green); animation: pulse 1s ease-in-out infinite; }
+.activity-dot.active { background: var(--accent-blue); animation: pulse 1.5s ease-in-out infinite; }
+.activity-dot.light { background: var(--accent-orange); }
+.activity-dot.idle { background: var(--status-idle); }
+
+/* Agent card pulse when active */
+.agent-card.is-active {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(79, 193, 255, 0.2);
+}
+
+.agent-card.is-working {
+  border-color: var(--accent-green);
+  box-shadow: 0 0 8px rgba(78, 201, 176, 0.2);
+}
+
+.agent-current-task {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--accent-blue);
+  border-left: 3px solid var(--accent-blue);
 }

@@ -1,6 +1,6 @@
 ---
 description: "Use when: starting a new project, designing system architecture, planning application components, deciding infrastructure strategy, decomposing a user story into workstreams. Architect, system design, solution architecture, project planning, technical design."
-tools: [read, search, web, todo, askQuestions, agent]
+tools: [read, search, web, todo, askQuestions, agent, execute]
 agents: [backend-lead, frontend-lead, infra-lead]
 ---
 
@@ -212,13 +212,45 @@ Use this format for each entry:
 
 Before starting work, READ your memory log to review prior sessions and continue where you left off.
 
-## Agent Monitor Events (Optional)
-If the Agent Monitor Dashboard is set up (`dashboard/`), write structured events to `.agent-events/events.jsonl` at key milestones. Use `dashboard/lib/log-event.js` or append JSON lines directly. Events to emit:
-- `spawned` — when your session starts
-- `plan-loaded` — when you save a plan to `.plans/`
-- `session-complete` — when you finish
+## Agent Monitor Events (MANDATORY)
+You MUST emit dashboard events at every key milestone so the human can track your progress in real time on the Agent Monitor Dashboard. Run these commands in the terminal:
 
-This is optional — the dashboard gracefully handles missing events.
+**Session start** (run FIRST thing when you begin):
+```
+node dashboard/lib/emit-event.js architect spawned
+```
+
+**After each discovery round / interview question**:
+```
+node dashboard/lib/emit-event.js architect question-asked --detail "Round 1: Asking about scope and users"
+```
+
+**When you start designing the architecture**:
+```
+node dashboard/lib/emit-event.js architect task-started --task "Designing system architecture" --taskIndex 1 --taskTotal 3
+```
+
+**When you save a plan to `.plans/`**:
+```
+node dashboard/lib/emit-event.js architect plan-saved --plan ".plans/<filename>.md" --detail "Architecture document saved"
+```
+
+**When you decompose into workstream briefs**:
+```
+node dashboard/lib/emit-event.js architect task-started --task "Decomposing into workstream briefs" --taskIndex 2 --taskTotal 3
+```
+
+**When you delegate to a lead**:
+```
+node dashboard/lib/emit-event.js architect subagent-invoked --detail "Delegating to @backend-lead"
+```
+
+**Session end**:
+```
+node dashboard/lib/emit-event.js architect session-complete --status done
+```
+
+Emit events generously — every meaningful step should be logged so the dashboard reflects your real-time progress. If `dashboard/` does not exist in the project, skip this section.
 
 ## Constraints
 - DO NOT write application code — you design and delegate

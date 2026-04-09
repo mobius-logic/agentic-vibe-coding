@@ -39,6 +39,10 @@
         <div class="summary-value" id="summary-events">—</div>
         <div class="summary-label">Events</div>
       </div>
+      <div class="summary-card">
+        <div class="summary-value" id="summary-activity">—</div>
+        <div class="summary-label">Activity</div>
+      </div>
     </section>
 
     <!-- Agent Cards -->
@@ -46,6 +50,33 @@
       <h2>Agents</h2>
       <div id="agents-grid" class="agents-grid">
         <div class="empty-state">No agent activity yet. Agents will appear here when they are spawned.</div>
+      </div>
+    </section>
+
+    <!-- Live Workspace Activity -->
+    <section id="activity-section">
+      <h2>Live Workspace Activity</h2>
+      <div class="activity-panels">
+        <div class="activity-panel">
+          <h3>Working Tree Changes</h3>
+          <div id="working-tree" class="activity-list">
+            <div class="empty-state">No uncommitted changes.</div>
+          </div>
+        </div>
+        <div class="activity-panel">
+          <h3>Recent Commits</h3>
+          <div id="recent-commits" class="activity-list">
+            <div class="empty-state">No recent commits.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Event Timeline -->
+    <section id="events-section">
+      <h2>Event Timeline</h2>
+      <div id="events-timeline" class="events-timeline">
+        <div class="empty-state">No events recorded yet. Events will appear as agents work.</div>
       </div>
     </section>
 
@@ -74,14 +105,6 @@
       <h2>Plans</h2>
       <div id="plans-container" class="plans-container">
         <div class="empty-state">No plans found in .plans/ directory.</div>
-      </div>
-    </section>
-
-    <!-- Event Timeline -->
-    <section id="events-section">
-      <h2>Event Timeline</h2>
-      <div id="events-timeline" class="events-timeline">
-        <div class="empty-state">No events recorded yet. Events will appear as agents work.</div>
       </div>
     </section>
   </main>

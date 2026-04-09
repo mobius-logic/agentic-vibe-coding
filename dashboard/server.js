@@ -13,6 +13,7 @@ const { getRecentEvents, getActiveAgents } = require('./lib/collectors/events');
 const { getAllBranches, getCurrentBranch } = require('./lib/collectors/git');
 const { getAllPlans } = require('./lib/collectors/plans');
 const { getAllLogs, getAgentLog } = require('./lib/collectors/logs');
+const { getActivitySnapshot } = require('./lib/collectors/activity');
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -72,6 +73,25 @@ function serveStatic(res, filePath) {
 const apiHandlers = {
   '/api/agents'(_req, res) {
     const agents = getActiveAgents();
+    const activity = getActivitySnapshot();
+
+    // Enrich agents with filesystem activity inference
+    const inferredSet = new Set(activity.inferredActiveAgents);
+    for (const name of inferredSet) {
+      if (!agents.find(a => a.agent === name)) {
+        agents.push({
+          agent: name,
+          status: 'active',
+          branch: null,
+          plan: null,
+          tasksCompleted: 0,
+          tasksTotal: 0,
+          lastEvent: 'inferred-from-logs',
+          lastEventTime: activity.timestamp,
+        });
+      }
+    }
+
     json(res, agents);
   },
 
@@ -97,13 +117,24 @@ const apiHandlers = {
     json(res, logs);
   },
 
+  '/api/activity'(_req, res) {
+    const activity = getActivitySnapshot();
+    json(res, activity);
+  },
+
   '/api/summary'(_req, res) {
     const agents = getActiveAgents();
     const branches = getAllBranches();
     const plans = getAllPlans();
     const events = getRecentEvents(100);
+    const activity = getActivitySnapshot();
 
-    const activeCount = agents.filter(a => a.status !== 'completed' && a.status !== 'idle').length;
+    // Include inferred agents in count
+    const allAgentNames = new Set(agents.map(a => a.agent));
+    for (const name of activity.inferredActiveAgents) allAgentNames.add(name);
+
+    const activeCount = agents.filter(a => a.status !== 'completed' && a.status !== 'idle').length
+      + activity.inferredActiveAgents.filter(n => !agents.find(a => a.agent === n)).length;
     const completedCount = agents.filter(a => a.status === 'completed').length;
 
     let totalTasks = 0;
@@ -114,7 +145,7 @@ const apiHandlers = {
     }
 
     json(res, {
-      agents: { total: agents.length, active: activeCount, completed: completedCount },
+      agents: { total: allAgentNames.size, active: activeCount, completed: completedCount },
       branches: {
         total: branches.length,
         active: branches.filter(b => b.status === 'active').length,
@@ -122,6 +153,12 @@ const apiHandlers = {
       },
       tasks: { total: totalTasks, completed: completedTasks },
       recentEventsCount: events.length,
+      activity: {
+        status: activity.status,
+        level: activity.activityLevel,
+        workingTreeChanges: activity.workingTreeChanges.length,
+        recentCommits: activity.recentCommits.length,
+      },
     });
   },
 };

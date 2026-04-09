@@ -76,16 +76,45 @@ Use this format for each entry:
 
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
 
-## Agent Monitor Events (Optional)
-If the Agent Monitor Dashboard is set up (`dashboard/`), write structured events to `.agent-events/events.jsonl` at key milestones. Use `dashboard/lib/log-event.js` or append JSON lines directly. Events to emit:
-- `spawned` — when your session starts
-- `plan-loaded` — when you read a plan from `.plans/`
-- `branch-created` — when you create a feature branch
-- `task-started` / `task-completed` — for each task
-- `subagent-invoked` — when you call a subagent
-- `session-complete` — when you finish
+## Agent Monitor Events (MANDATORY)
+You MUST emit dashboard events at every key milestone so the human can track your progress in real time on the Agent Monitor Dashboard. Run these commands in the terminal:
 
-This is optional — the dashboard gracefully handles missing events.
+**Session start** (run FIRST thing when you begin):
+```
+node dashboard/lib/emit-event.js frontend-lead spawned
+```
+
+**When you read/load a plan**:
+```
+node dashboard/lib/emit-event.js frontend-lead plan-loaded --plan ".plans/<filename>.md" --taskTotal <N>
+```
+
+**When you create a feature branch**:
+```
+node dashboard/lib/emit-event.js frontend-lead branch-created --branch "feature/frontend/<name>"
+```
+
+**When you START each task** (run before delegating to subagent):
+```
+node dashboard/lib/emit-event.js frontend-lead task-started --task "<description>" --taskIndex <N> --taskTotal <total>
+```
+
+**When each task is COMPLETED** (run after subagent returns):
+```
+node dashboard/lib/emit-event.js frontend-lead task-completed --task "<description>" --taskIndex <N> --taskTotal <total>
+```
+
+**When you invoke a subagent**:
+```
+node dashboard/lib/emit-event.js frontend-lead subagent-invoked --detail "@developer: <task>"
+```
+
+**Session end**:
+```
+node dashboard/lib/emit-event.js frontend-lead session-complete --status done
+```
+
+Emit events generously — every meaningful step should be logged so the dashboard reflects your real-time progress. If `dashboard/` does not exist in the project, skip this section.
 
 ## Constraints
 - DO NOT write application code yourself — delegate to @developer

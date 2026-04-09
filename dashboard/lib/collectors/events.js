@@ -76,6 +76,7 @@ function getActiveAgents(eventsFile) {
         state.status = 'active';
         break;
       case 'plan-loaded':
+      case 'plan-saved':
         state.plan = evt.plan || null;
         if (evt.taskTotal) state.tasksTotal = evt.taskTotal;
         break;
@@ -85,13 +86,25 @@ function getActiveAgents(eventsFile) {
       case 'task-started':
         state.status = 'working';
         if (evt.branch) state.branch = evt.branch;
+        if (evt.taskTotal) state.tasksTotal = evt.taskTotal;
+        state.currentTask = evt.task || null;
         break;
       case 'task-completed':
         state.tasksCompleted++;
         if (evt.taskTotal) state.tasksTotal = evt.taskTotal;
+        state.currentTask = null;
+        break;
+      case 'question-asked':
+        state.status = 'working';
+        state.currentTask = evt.detail || 'Asking questions';
+        break;
+      case 'subagent-invoked':
+        state.status = 'working';
+        state.currentTask = evt.detail || 'Invoking subagent';
         break;
       case 'session-complete':
         state.status = 'completed';
+        state.currentTask = null;
         break;
       case 'error':
         state.status = 'error';
