@@ -59,6 +59,31 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - Agents may write structured events to `.agent-events/events.jsonl` using `dashboard/lib/log-event.js`
 - The dashboard is purely additive — it does not affect existing agent behavior
 
+## Strict Delegation Protocol (MANDATORY)
+**Protocol Reference**: `.plans/2026-04-09-180237-strict-delegation-protocol.md`
+
+All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.
+
+| Gate | Required Action | Cannot Proceed Until |
+|------|----------------|---------------------|
+| 0 | Plan Approval | Human approves execution plan |
+| 1 | Branch Creation | Feature branch exists |
+| 2 | Implementation | `@developer` returns completion report |
+| 3 | Testing | `@tester` returns verdict "ALL PASS" |
+| 4 | Code Review | `@code-reviewer` returns verdict "APPROVE" |
+| 5 | Documentation | `@docs-writer` returns completion report |
+| 6 | Pre-Commit Checklist | All 6 checkboxes verified TRUE |
+| 7 | Commit & Report | Session log written, events emitted |
+
+### Delegation Rules
+- Leads MUST pass a **Delegation Payload** (plan ref, branch, task, acceptance criteria) to every subagent
+- Subagents MUST return a **Completion Report** with structured fields including "Log Written: yes/no"
+- Leads MUST verify each subagent's "Log Written" field is "yes" before proceeding
+- If `@tester` reports failures → loop back to `@developer`, then re-test
+- If `@code-reviewer` requests changes → loop back to `@developer`, re-test, re-review
+- NEVER skip `@tester`, `@code-reviewer`, or `@docs-writer` — all three are mandatory
+- All agents MUST write session logs to `.agent-logs/` and emit dashboard events
+
 ## Collaboration
 - Each workstream operates on its own feature branch
 - Use pull requests for integration to `main`

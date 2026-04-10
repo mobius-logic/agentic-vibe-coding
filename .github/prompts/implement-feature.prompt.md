@@ -12,12 +12,14 @@ Your job:
 1. Check `.plans/` for an existing architecture document or workstream brief that relates to this feature
 2. Invoke the specified team lead agent
 3. Pass the feature specification clearly, including any architecture references
-4. The team lead will handle branching, delegation to developer/tester subagents, and reporting
+4. **Remind the lead** to follow the 7-Gate Mandatory Execution Sequence from `.plans/2026-04-09-180237-strict-delegation-protocol.md`
+5. The team lead will handle branching, delegation to developer/tester/code-reviewer/docs-writer subagents, and reporting
 
 If the user doesn't specify a team lead, infer the best one from the feature description.
 
 Provide the team lead with:
 - Clear feature specification
 - Architecture reference (path to `.plans/` architecture file, if one exists)
+- Delegation protocol reference: `.plans/2026-04-09-180237-strict-delegation-protocol.md`
 - Acceptance criteria
 - Any constraints or preferences mentioned by the user

@@ -181,10 +181,29 @@ Present all workstream briefs to the human and ask:
 If the human asks you to **delegate directly**:
 
 1. For each workstream, invoke the appropriate team lead subagent (`@backend-lead`, `@frontend-lead`, `@infra-lead`) with the task brief as the prompt
-2. Coordinate execution order based on dependencies:
+2. **Include the Architect Handshake Payload** in every delegation (see below)
+3. Coordinate execution order based on dependencies:
    - Start independent workstreams in parallel
    - Queue dependent workstreams until their prerequisites complete
-3. Report progress back to the human as each lead completes its planning phase
+4. Report progress back to the human as each lead completes its planning phase
+
+#### Architect → Lead Handshake Payload
+
+When delegating to any lead, you MUST include this structured handshake:
+
+```
+## Architect Handshake
+- **Architecture Plan**: <path to .plans/ architecture file>
+- **Workstream Brief**: <the full workstream task brief>
+- **Delegation Protocol**: .plans/2026-04-09-180237-strict-delegation-protocol.md
+- **Required Acknowledgment**: Lead MUST confirm:
+  1. It has read the architecture plan
+  2. It has read the delegation protocol
+  3. It will follow the 7-Gate mandatory sequence
+  4. It will present its execution plan to the human before starting
+```
+
+The lead MUST acknowledge receipt by confirming all 4 items. If a lead does not acknowledge, do NOT proceed — re-send the handshake.
 
 If the human prefers **manual delegation**:
 - Present the task briefs clearly formatted so they can copy-paste each one into a separate Copilot Chat session or Codespace
