@@ -8,11 +8,26 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 2. **If no approved plan exists**, do NOT proceed with implementation. Instead:
    - Inform the user that this project requires changes to be routed through `@architect` first for design/planning, or through the appropriate team lead (`@backend-lead`, `@frontend-lead`, `@infra-lead`) for scoped feature work.
    - Suggest: _"This project follows an architect-first workflow. Please invoke `@architect` to design this change, or `@<lead>` to plan and delegate it — so the work is properly planned, tracked, and logged."_
-3. **Exceptions** (small changes that may proceed without a plan):
-   - Typo fixes in documentation
-   - Single-line bug fixes with obvious correctness
+3. **Exceptions** (changes that may proceed without a full `.plans/` architecture document):
+   - Typo fixes in documentation only (`.md` files)
    - Updating dependencies / lockfiles
    - Changes explicitly requested by a team lead agent as part of an active plan
+
+   **Even excepted changes MUST**:
+   - Be made on a feature or fix branch (never directly on `main`)
+   - Pass existing tests (run the project's test command)
+   - Receive a self-review or peer review before merge
+
+   **Removed exception**: "Single-line bug fixes with obvious correctness" is no longer excepted.
+   All bug fixes, regardless of size, require a branch, test pass, and review.
+
+   | Change Type | Plan Required | Branch Required | Tests Required | Review Required |
+   |---|---|---|---|---|
+   | Feature / Refactor / Architecture | Yes | Yes | Yes | Yes |
+   | Bug fix (any size) | Yes | Yes | Yes | Yes |
+   | Documentation typo (`.md` only) | No | Yes | No (if no code) | Self-review |
+   | Dependency / lockfile update | No | Yes | Yes | Self-review |
+   | Lead-delegated subtask | No (plan exists) | Yes | Yes | Yes |
 
 **Why**: Direct edits bypass the planning, branching, testing, logging, and review protocols that this template enforces. Unplanned changes create drift from the architectural design and are not tracked in `.agent-logs/`.
 

@@ -138,4 +138,56 @@ describe('dashboard server', () => {
     const res = await get('/api/summary');
     assert.equal(res.headers['access-control-allow-origin'], '*');
   });
+
+  it('GET /api/graph returns nodes and edges', async () => {
+    const res = await get('/api/graph');
+    assert.equal(res.status, 200);
+    const data = res.json();
+    assert.ok('nodes' in data, 'should have nodes');
+    assert.ok('edges' in data, 'should have edges');
+    assert.ok(Array.isArray(data.nodes));
+    assert.ok(Array.isArray(data.edges));
+  });
+
+  it('GET /api/stream returns SSE stream', (t, done) => {
+    http.get(`${baseUrl}/api/stream`, (res) => {
+      assert.equal(res.statusCode, 200);
+      assert.ok(res.headers['content-type'].includes('text/event-stream'));
+
+      let data = '';
+      res.on('data', chunk => {
+        data += chunk.toString();
+        // We expect the connected event immediately
+        if (data.includes('event: connected')) {
+          res.destroy();
+          done();
+        }
+      });
+    }).on('error', (err) => {
+      // Connection reset after destroy is expected
+      if (err.code !== 'ECONNRESET') {
+        done(err);
+      }
+    });
+  });
+
+  it('GET /api/agents does not override completed agents with inferred status', async () => {
+    const res = await get('/api/agents');
+    assert.equal(res.status, 200);
+    const agents = res.json();
+    // All agents from events should maintain their event-derived status
+    for (const agent of agents) {
+      if (agent.lastEvent === 'session-complete') {
+        assert.equal(agent.status, 'completed', `${agent.agent} should be completed`);
+      }
+    }
+  });
+
+  it('GET /api/activity returns cached snapshot', async () => {
+    const res = await get('/api/activity');
+    assert.equal(res.status, 200);
+    const data = res.json();
+    assert.ok('status' in data);
+    assert.ok('inferredActiveAgents' in data);
+  });
 });

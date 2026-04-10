@@ -9,13 +9,41 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const { getRecentEvents, getActiveAgents } = require('./lib/collectors/events');
+const { getRecentEvents, getActiveAgents, getAgentGraph } = require('./lib/collectors/events');
 const { getAllBranches, getCurrentBranch } = require('./lib/collectors/git');
 const { getAllPlans } = require('./lib/collectors/plans');
 const { getAllLogs, getAgentLog } = require('./lib/collectors/logs');
 const { getActivitySnapshot } = require('./lib/collectors/activity');
+const { EventCache } = require('./lib/collectors/event-cache');
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+// --- SSE Client Management ---
+const sseClients = new Set();
+
+function broadcastToSSE(newEvents) {
+  const data = JSON.stringify(newEvents);
+  for (const client of sseClients) {
+    client.write(`event: events\ndata: ${data}\n\n`);
+  }
+}
+
+// --- EventCache Instance ---
+const eventCache = new EventCache(null, broadcastToSSE);
+
+// --- Activity Snapshot TTL Cache ---
+let activityCache = null;
+let activityCacheTime = 0;
+const ACTIVITY_CACHE_TTL = 5000;
+
+function getCachedActivity() {
+  const now = Date.now();
+  if (!activityCache || (now - activityCacheTime) > ACTIVITY_CACHE_TTL) {
+    activityCache = getActivitySnapshot();
+    activityCacheTime = now;
+  }
+  return activityCache;
+}
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -73,12 +101,15 @@ function serveStatic(res, filePath) {
 const apiHandlers = {
   '/api/agents'(_req, res) {
     const agents = getActiveAgents();
-    const activity = getActivitySnapshot();
+    const activity = getCachedActivity();
 
-    // Enrich agents with filesystem activity inference
+    // Build set of agents known from events (any status)
+    const knownAgents = new Set(agents.map(a => a.agent));
+
+    // Only add inferred agents that are NOT already known from events
     const inferredSet = new Set(activity.inferredActiveAgents);
     for (const name of inferredSet) {
-      if (!agents.find(a => a.agent === name)) {
+      if (!knownAgents.has(name)) {
         agents.push({
           agent: name,
           status: 'active',
@@ -108,7 +139,7 @@ const apiHandlers = {
 
   '/api/events'(_req, res, query) {
     const limit = parseInt(query.limit, 10) || 50;
-    const events = getRecentEvents(limit);
+    const events = eventCache.getEvents(limit);
     json(res, events);
   },
 
@@ -118,8 +149,25 @@ const apiHandlers = {
   },
 
   '/api/activity'(_req, res) {
-    const activity = getActivitySnapshot();
+    const activity = getCachedActivity();
     json(res, activity);
+  },
+
+  '/api/graph'(_req, res) {
+    const graph = eventCache.getGraph();
+    json(res, graph);
+  },
+
+  '/api/stream'(req, res) {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.write('event: connected\ndata: {}\n\n');
+    sseClients.add(res);
+    req.on('close', () => sseClients.delete(res));
   },
 
   '/api/summary'(_req, res) {
@@ -127,15 +175,19 @@ const apiHandlers = {
     const branches = getAllBranches();
     const plans = getAllPlans();
     const events = getRecentEvents(100);
-    const activity = getActivitySnapshot();
+    const activity = getCachedActivity();
 
     // Include inferred agents in count
-    const allAgentNames = new Set(agents.map(a => a.agent));
-    for (const name of activity.inferredActiveAgents) allAgentNames.add(name);
+    const knownAgentNames = new Set(agents.map(a => a.agent));
 
     const activeCount = agents.filter(a => a.status !== 'completed' && a.status !== 'idle').length
-      + activity.inferredActiveAgents.filter(n => !agents.find(a => a.agent === n)).length;
+      + activity.inferredActiveAgents.filter(n => !knownAgentNames.has(n)).length;
     const completedCount = agents.filter(a => a.status === 'completed').length;
+
+    // Add unknown inferred agents to total count
+    for (const name of activity.inferredActiveAgents) {
+      if (!knownAgentNames.has(name)) knownAgentNames.add(name);
+    }
 
     let totalTasks = 0;
     let completedTasks = 0;
@@ -145,7 +197,7 @@ const apiHandlers = {
     }
 
     json(res, {
-      agents: { total: allAgentNames.size, active: activeCount, completed: completedCount },
+      agents: { total: knownAgentNames.size, active: activeCount, completed: completedCount },
       branches: {
         total: branches.length,
         active: branches.filter(b => b.status === 'active').length,
@@ -219,4 +271,4 @@ function createServer() {
   return http.createServer(handleRequest);
 }
 
-module.exports = { createServer, handleRequest };
+module.exports = { createServer, handleRequest, eventCache, sseClients };

@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const { readEvents, getRecentEvents, getActiveAgents } = require('../lib/collectors/events');
+const { readEvents, getRecentEvents, getActiveAgents, getAgentGraph } = require('../lib/collectors/events');
 const { parsePlanFile, getAllPlans } = require('../lib/collectors/plans');
 const { parseLogFile } = require('../lib/collectors/logs');
 
@@ -60,6 +60,57 @@ describe('events collector', () => {
     } finally {
       fs.unlinkSync(tmpFile);
     }
+  });
+
+  it('getAgentGraph returns nodes and edges', () => {
+    const graph = getAgentGraph(eventsFile);
+    assert.ok(graph.nodes, 'should have nodes');
+    assert.ok(graph.edges, 'should have edges');
+    assert.ok(Array.isArray(graph.nodes));
+    assert.ok(Array.isArray(graph.edges));
+    assert.ok(graph.nodes.length >= 2, 'should have at least 2 nodes');
+  });
+
+  it('getAgentGraph nodes have id, status, icon', () => {
+    const graph = getAgentGraph(eventsFile);
+    for (const node of graph.nodes) {
+      assert.ok(node.id, 'node should have id');
+      assert.ok(node.status, 'node should have status');
+      assert.ok(node.icon, 'node should have icon');
+    }
+  });
+
+  it('getAgentGraph extracts edges from subagent-invoked events', () => {
+    const graph = getAgentGraph(eventsFile);
+    // The sample-events.jsonl has a subagent-invoked event: detail "developer"
+    const edge = graph.edges.find(e => e.to === 'developer');
+    assert.ok(edge, 'should have edge to developer');
+    assert.equal(edge.from, 'backend-lead');
+  });
+
+  it('getAgentGraph parses detail format @agent: task', () => {
+    const tmpFile = path.join(os.tmpdir(), `graph-events-${Date.now()}.jsonl`);
+    const events = [
+      JSON.stringify({ ts: '2026-04-10T10:00:00Z', agent: 'backend-lead', event: 'spawned' }),
+      JSON.stringify({ ts: '2026-04-10T10:01:00Z', agent: 'backend-lead', event: 'subagent-invoked', detail: '@developer: Write login' }),
+      JSON.stringify({ ts: '2026-04-10T10:02:00Z', agent: 'developer', event: 'spawned' }),
+    ].join('\n') + '\n';
+    fs.writeFileSync(tmpFile, events, 'utf8');
+    try {
+      const graph = getAgentGraph(tmpFile);
+      assert.equal(graph.edges.length, 1);
+      assert.equal(graph.edges[0].from, 'backend-lead');
+      assert.equal(graph.edges[0].to, 'developer');
+      assert.equal(graph.edges[0].task, 'Write login');
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it('getAgentGraph returns empty for missing file', () => {
+    const graph = getAgentGraph('/nonexistent/events.jsonl');
+    assert.deepEqual(graph.nodes, []);
+    assert.deepEqual(graph.edges, []);
   });
 });
 
