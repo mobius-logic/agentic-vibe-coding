@@ -23,6 +23,26 @@ _Replace this section with how to use your application._
 
 _Replace this section with your API documentation (if applicable)._
 
+### Agent Monitor Dashboard API
+
+The dashboard server exposes the following REST API endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/agents` | GET | Returns array of agents with status (event-based, enriched with filesystem inference) |
+| `/api/branches` | GET | Returns current branch and all branches |
+| `/api/plans` | GET | Returns array of parsed plan documents |
+| `/api/events` | GET | Returns recent events (supports `?limit=N` query param) |
+| `/api/events` | GET | Uses EventCache for incremental reads instead of full file re-read |
+| `/api/logs` | GET | Returns all agent logs |
+| `/api/logs/:agent` | GET | Returns a specific agent's log |
+| `/api/activity` | GET | Returns filesystem activity snapshot (5s TTL cache) |
+| `/api/summary` | GET | Returns aggregate dashboard summary |
+| `/api/graph` | GET | Returns `{ nodes, edges }` agent relationship graph |
+| `/api/stream` | GET | Server-Sent Events (SSE) stream for real-time event push |
+
+Start the dashboard: `node dashboard/start.js` (opens at http://127.0.0.1:4820)
+
 ## Development
 
 This project uses a multi-agent workflow powered by GitHub Copilot. To contribute:

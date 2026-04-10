@@ -4,9 +4,11 @@
 'use strict';
 
 const API_BASE = '';
-const REFRESH_INTERVAL = 3000;
+const FAST_POLL = 3000;
+const SLOW_POLL = 10000;
 
 let refreshTimer = null;
+let eventSource = null;
 
 // ── Utility ────────────────────────────────────────────────
 
@@ -285,29 +287,202 @@ function renderEvents(events) {
   `).join('');
 }
 
+// ── Graph Renderer ─────────────────────────────────────────
+
+function renderGraph(graphData) {
+  const container = document.getElementById('agents-graph');
+  if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
+    container.innerHTML = '<div class="empty-state">No agent relationships yet. Invoke subagents to see the graph.</div>';
+    return;
+  }
+
+  const { nodes, edges } = graphData;
+
+  // Build adjacency and find roots (nodes never appearing as edge target)
+  const childSet = new Set(edges.map(e => e.to));
+  const roots = nodes.filter(n => !childSet.has(n.id));
+  if (roots.length === 0 && nodes.length > 0) roots.push(nodes[0]);
+
+  // BFS to assign levels
+  const levels = {};
+  const adj = {};
+  for (const e of edges) {
+    if (!adj[e.from]) adj[e.from] = [];
+    adj[e.from].push(e.to);
+  }
+  const queue = roots.map(r => ({ id: r.id, level: 0 }));
+  const visited = new Set();
+  while (queue.length > 0) {
+    const { id, level } = queue.shift();
+    if (visited.has(id)) continue;
+    visited.add(id);
+    levels[id] = level;
+    if (adj[id]) {
+      for (const child of adj[id]) {
+        if (!visited.has(child)) queue.push({ id: child, level: level + 1 });
+      }
+    }
+  }
+  // Assign unvisited nodes to level 0
+  for (const n of nodes) {
+    if (levels[n.id] === undefined) levels[n.id] = 0;
+  }
+
+  // Group nodes by level
+  const byLevel = {};
+  let maxLevel = 0;
+  for (const n of nodes) {
+    const lvl = levels[n.id];
+    if (!byLevel[lvl]) byLevel[lvl] = [];
+    byLevel[lvl].push(n);
+    if (lvl > maxLevel) maxLevel = lvl;
+  }
+
+  // Layout constants
+  const nodeW = 140, nodeH = 50;
+  const levelH = 100;
+  const padX = 20, padY = 30;
+  const svgH = (maxLevel + 1) * levelH + padY * 2;
+
+  // Calculate positions
+  const positions = {};
+  const containerWidth = container.clientWidth || 800;
+  for (let lvl = 0; lvl <= maxLevel; lvl++) {
+    const row = byLevel[lvl] || [];
+    const totalW = row.length * nodeW + (row.length - 1) * 30;
+    let startX = (containerWidth - totalW) / 2;
+    if (startX < padX) startX = padX;
+    row.forEach((n, i) => {
+      positions[n.id] = {
+        x: startX + i * (nodeW + 30),
+        y: padY + lvl * levelH,
+      };
+    });
+  }
+
+  // Status colors
+  const statusColors = {
+    'active': '#4ec9b0', 'working': '#4fc1ff', 'completed': '#608b4e',
+    'idle': '#6a6a6a', 'error': '#f44747',
+  };
+
+  // Build SVG
+  let svg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${containerWidth} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6a6a6a"/></marker></defs>`;
+
+  // Draw edges
+  for (const e of edges) {
+    const from = positions[e.from];
+    const to = positions[e.to];
+    if (!from || !to) continue;
+    const x1 = from.x + nodeW / 2, y1 = from.y + nodeH;
+    const x2 = to.x + nodeW / 2, y2 = to.y;
+    svg += `<line class="graph-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6a6a6a" stroke-width="2" marker-end="url(#arrowhead)">`;
+    if (e.task) svg += `<title>${escapeHtml(e.task)}</title>`;
+    svg += `</line>`;
+  }
+
+  // Draw nodes
+  for (const n of nodes) {
+    const pos = positions[n.id];
+    if (!pos) continue;
+    const color = statusColors[n.status] || '#6a6a6a';
+    const isWorking = n.status === 'working';
+    svg += `<g class="graph-node${isWorking ? ' graph-node-pulse' : ''}">`;
+    svg += `<rect x="${pos.x}" y="${pos.y}" width="${nodeW}" height="${nodeH}" rx="8" ry="8" fill="#252526" stroke="${color}" stroke-width="2"/>`;
+    svg += `<text class="graph-label" x="${pos.x + nodeW / 2}" y="${pos.y + nodeH / 2 + 5}" text-anchor="middle" fill="#cccccc" font-size="12">${n.icon || '🤖'} ${escapeHtml(n.id)}</text>`;
+    svg += `</g>`;
+  }
+
+  svg += `</svg>`;
+  container.innerHTML = svg;
+}
+
+// ── View Toggle ────────────────────────────────────────────
+
+function initViewToggle() {
+  const gridBtn = document.getElementById('view-grid');
+  const graphBtn = document.getElementById('view-graph');
+  const grid = document.getElementById('agents-grid');
+  const graph = document.getElementById('agents-graph');
+
+  const saved = localStorage.getItem('agent-view') || 'grid';
+  if (saved === 'graph') {
+    gridBtn.classList.remove('active');
+    graphBtn.classList.add('active');
+    grid.style.display = 'none';
+    graph.style.display = 'block';
+  }
+
+  gridBtn.addEventListener('click', () => {
+    gridBtn.classList.add('active');
+    graphBtn.classList.remove('active');
+    grid.style.display = '';
+    graph.style.display = 'none';
+    localStorage.setItem('agent-view', 'grid');
+  });
+
+  graphBtn.addEventListener('click', () => {
+    graphBtn.classList.add('active');
+    gridBtn.classList.remove('active');
+    grid.style.display = 'none';
+    graph.style.display = 'block';
+    localStorage.setItem('agent-view', 'graph');
+  });
+}
+
+// ── SSE Connection ─────────────────────────────────────────
+
+function connectSSE() {
+  if (eventSource) eventSource.close();
+  try {
+    eventSource = new EventSource(`${API_BASE}/api/stream`);
+
+    eventSource.addEventListener('events', () => {
+      refresh();
+    });
+
+    eventSource.addEventListener('connected', () => {
+      // Switch to slow polling since SSE handles real-time updates
+      startAutoRefresh();
+    });
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      eventSource = null;
+      // Fall back to fast polling
+      startAutoRefresh();
+    };
+  } catch {
+    eventSource = null;
+  }
+}
+
 // ── Main Refresh Loop ──────────────────────────────────────
 
 async function refresh() {
   const statusEl = document.getElementById('connection-status');
 
   try {
-    const [summary, agents, branches, plans, events, activity] = await Promise.all([
+    const [summary, agents, branches, plans, events, activity, graphData] = await Promise.all([
       fetchJSON('/api/summary'),
       fetchJSON('/api/agents'),
       fetchJSON('/api/branches'),
       fetchJSON('/api/plans'),
       fetchJSON('/api/events?limit=100'),
       fetchJSON('/api/activity'),
+      fetchJSON('/api/graph'),
     ]);
 
     renderSummary(summary);
     renderAgents(agents, events);
+    renderGraph(graphData);
     renderActivity(activity);
     renderBranches(branches);
     renderPlans(plans);
     renderEvents(events);
 
-    statusEl.textContent = '● Live';
+    statusEl.textContent = eventSource ? '● Live (SSE)' : '● Live';
     statusEl.className = 'status-badge status-active';
   } catch {
     statusEl.textContent = '● Disconnected';
@@ -317,7 +492,8 @@ async function refresh() {
 
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(refresh, REFRESH_INTERVAL);
+  const interval = eventSource ? SLOW_POLL : FAST_POLL;
+  refreshTimer = setInterval(refresh, interval);
 }
 
 function stopAutoRefresh() {
@@ -339,6 +515,9 @@ document.addEventListener('DOMContentLoaded', () => {
       stopAutoRefresh();
     }
   });
+
+  initViewToggle();
+  connectSSE();
 
   // Initial fetch
   refresh();

@@ -115,4 +115,47 @@ function getActiveAgents(eventsFile) {
   return Object.values(agentState);
 }
 
-module.exports = { readEvents, getRecentEvents, getActiveAgents };
+const ICONS = {
+  'architect': '🏗️',
+  'backend-lead': '⚙️',
+  'frontend-lead': '🎨',
+  'infra-lead': '🔧',
+  'developer': '💻',
+  'tester': '🧪',
+  'code-reviewer': '🔍',
+  'docs-writer': '📝',
+};
+
+function getAgentGraph(eventsFile) {
+  const events = readEvents(eventsFile);
+  const agents = getActiveAgents(eventsFile);
+  const agentMap = {};
+  for (const a of agents) {
+    agentMap[a.agent] = a;
+  }
+
+  const nodes = agents.map(a => ({
+    id: a.agent,
+    status: a.status,
+    icon: ICONS[a.agent] || '🤖',
+  }));
+
+  const edges = [];
+  const detailRegex = /^@?([a-z-]+)(?::\s*(.+))?$/;
+  for (const evt of events) {
+    if (evt.event === 'subagent-invoked' && evt.detail) {
+      const match = evt.detail.match(detailRegex);
+      if (match) {
+        edges.push({
+          from: evt.agent,
+          to: match[1],
+          task: match[2] || null,
+        });
+      }
+    }
+  }
+
+  return { nodes, edges };
+}
+
+module.exports = { readEvents, getRecentEvents, getActiveAgents, getAgentGraph };

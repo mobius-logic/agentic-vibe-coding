@@ -47,10 +47,17 @@
 
     <!-- Agent Cards -->
     <section id="agents-section">
-      <h2>Agents</h2>
+      <div class="section-header">
+        <h2>Agents</h2>
+        <div class="view-toggle">
+          <button id="view-grid" class="view-btn active">Grid</button>
+          <button id="view-graph" class="view-btn">Graph</button>
+        </div>
+      </div>
       <div id="agents-grid" class="agents-grid">
         <div class="empty-state">No agent activity yet. Agents will appear here when they are spawned.</div>
       </div>
+      <div id="agents-graph" class="agents-graph" style="display:none;"></div>
     </section>
 
     <!-- Live Workspace Activity -->
