@@ -74,6 +74,18 @@ function agentIcon(name) {
   return icons[name] || '🤖';
 }
 
+function phaseIcon(phase) {
+  const icons = {
+    'thinking': '💭',
+    'coding': '⌨️',
+    'searching': '🔍',
+    'reviewing': '📋',
+    'waiting': '⏳',
+    'delegating': '🔗',
+  };
+  return icons[phase] || '';
+}
+
 function eventTypeLabel(type) {
   const labels = {
     'spawned': '🟢 spawned',
@@ -86,6 +98,7 @@ function eventTypeLabel(type) {
     'subagent-invoked': '🔗 subagent',
     'question-asked': '❓ question',
     'session-complete': '🏁 session done',
+    'heartbeat': '💓 heartbeat',
     'error': '❌ error',
   };
   return labels[type] || type;
@@ -105,10 +118,15 @@ async function fetchJSON(endpoint) {
 
 // ── Renderers ──────────────────────────────────────────────
 
-function renderSummary(data) {
+function renderSummary(data, graphData, agents) {
   if (!data) return;
+
+  // C4: Show workstream count when >1
+  const wsCount = (graphData && graphData.workstreams) ? graphData.workstreams.length : 0;
+  const agentText = `${data.agents.active}/${data.agents.total}`;
   document.getElementById('summary-agents').textContent =
-    `${data.agents.active}/${data.agents.total}`;
+    wsCount > 1 ? `${agentText} · ${wsCount} ws` : agentText;
+
   document.getElementById('summary-branches').textContent =
     `${data.branches.total}`;
   document.getElementById('summary-tasks').textContent =
@@ -116,14 +134,30 @@ function renderSummary(data) {
   document.getElementById('summary-events').textContent =
     `${data.recentEventsCount}`;
 
-  // Activity indicator
+  // Activity indicator + B6: Last signal from heartbeats
   const actEl = document.getElementById('summary-activity');
+  let lastSignal = '';
+  if (agents && agents.length > 0) {
+    let newest = null;
+    for (const a of agents) {
+      if (a.lastHeartbeat) {
+        const t = new Date(a.lastHeartbeat).getTime();
+        if (!newest || t > newest) newest = t;
+      }
+    }
+    if (newest) {
+      const secsAgo = Math.floor((Date.now() - newest) / 1000);
+      lastSignal = secsAgo < 60 ? `${secsAgo}s ago` : secsAgo < 3600 ? `${Math.floor(secsAgo / 60)}m ago` : `${Math.floor(secsAgo / 3600)}h ago`;
+    }
+  }
+
   if (data.activity) {
     const s = data.activity.status;
     const label = s === 'very-active' ? 'Very Active' : s === 'active' ? 'Active' : s === 'light' ? 'Light' : 'Idle';
-    actEl.innerHTML = `<span class="activity-badge"><span class="activity-dot ${s}"></span> ${label}</span>`;
+    const signalHtml = lastSignal ? `<br><span style="font-size:10px;color:#9d9d9d">Signal: ${lastSignal}</span>` : '';
+    actEl.innerHTML = `<span class="activity-badge"><span class="activity-dot ${s}"></span> ${label}</span>${signalHtml}`;
   } else {
-    actEl.textContent = 'Idle';
+    actEl.textContent = lastSignal ? `Idle · ${lastSignal}` : 'Idle';
   }
 }
 
@@ -134,15 +168,18 @@ function renderAgents(agents, events) {
     return;
   }
 
-  // Find latest task-started event per agent for "current task" display
+  // B5: Find latest task-started/heartbeat event per agent for "current task" display
   const currentTasks = {};
+  const currentPhases = {};
   if (events) {
     for (const evt of events) {
-      if (evt.event === 'task-started' || evt.event === 'question-asked') {
+      if (evt.event === 'task-started' || evt.event === 'question-asked' || evt.event === 'heartbeat') {
         currentTasks[evt.agent] = evt.task || evt.detail || '';
+        if (evt.phase) currentPhases[evt.agent] = evt.phase;
       }
       if (evt.event === 'task-completed' || evt.event === 'session-complete') {
         delete currentTasks[evt.agent];
+        delete currentPhases[evt.agent];
       }
     }
   }
@@ -154,6 +191,8 @@ function renderAgents(agents, events) {
     const isActive = agent.status === 'active' || agent.status === 'working';
     const cardClass = agent.status === 'working' ? 'is-working' : (isActive ? 'is-active' : '');
     const currentTask = currentTasks[agent.agent];
+    const phase = agent.phase || currentPhases[agent.agent];
+    const pEmoji = phaseIcon(phase);
 
     return `
       <div class="agent-card ${cardClass}">
@@ -167,7 +206,7 @@ function renderAgents(agents, events) {
           ${agent.plan ? `<span>📋 ${escapeHtml(agent.plan)}</span>` : ''}
           ${agent.lastEventTime ? `<span>🕐 ${timeAgo(agent.lastEventTime)}</span>` : ''}
         </div>
-        ${currentTask ? `<div class="agent-current-task">▶ ${escapeHtml(currentTask)}</div>` : ''}
+        ${currentTask ? `<div class="agent-current-task">${pEmoji ? pEmoji + ' ' : '▶ '}${escapeHtml(currentTask)}</div>` : ''}
         ${agent.tasksTotal > 0 ? `
           <div class="agent-progress">
             <div class="progress-bar">
@@ -297,6 +336,8 @@ function renderGraph(graphData) {
   }
 
   const { nodes, edges } = graphData;
+  const workstreams = graphData.workstreams || [];
+  const multiWorkstream = workstreams.length > 1;
 
   // Build adjacency and find roots (nodes never appearing as edge target)
   const childSet = new Set(edges.map(e => e.to));
@@ -323,42 +364,14 @@ function renderGraph(graphData) {
       }
     }
   }
-  // Assign unvisited nodes to level 0
   for (const n of nodes) {
     if (levels[n.id] === undefined) levels[n.id] = 0;
   }
 
-  // Group nodes by level
-  const byLevel = {};
-  let maxLevel = 0;
-  for (const n of nodes) {
-    const lvl = levels[n.id];
-    if (!byLevel[lvl]) byLevel[lvl] = [];
-    byLevel[lvl].push(n);
-    if (lvl > maxLevel) maxLevel = lvl;
-  }
-
   // Layout constants
-  const nodeW = 140, nodeH = 50;
-  const levelH = 100;
+  const nodeW = 140;
   const padX = 20, padY = 30;
-  const svgH = (maxLevel + 1) * levelH + padY * 2;
-
-  // Calculate positions
-  const positions = {};
   const containerWidth = container.clientWidth || 800;
-  for (let lvl = 0; lvl <= maxLevel; lvl++) {
-    const row = byLevel[lvl] || [];
-    const totalW = row.length * nodeW + (row.length - 1) * 30;
-    let startX = (containerWidth - totalW) / 2;
-    if (startX < padX) startX = padX;
-    row.forEach((n, i) => {
-      positions[n.id] = {
-        x: startX + i * (nodeW + 30),
-        y: padY + lvl * levelH,
-      };
-    });
-  }
 
   // Status colors
   const statusColors = {
@@ -366,36 +379,183 @@ function renderGraph(graphData) {
     'idle': '#6a6a6a', 'error': '#f44747',
   };
 
-  // Build SVG
-  let svg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${containerWidth} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
-  svg += `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6a6a6a"/></marker></defs>`;
+  // Workstream accent colors for edges
+  const wsColors = ['#4fc1ff', '#4ec9b0', '#ce9178', '#c586c0', '#dcdcaa', '#f44747'];
+  const wsColorMap = {};
+  workstreams.forEach((ws, i) => { wsColorMap[ws] = wsColors[i % wsColors.length]; });
 
-  // Draw edges
-  for (const e of edges) {
-    const from = positions[e.from];
-    const to = positions[e.to];
-    if (!from || !to) continue;
-    const x1 = from.x + nodeW / 2, y1 = from.y + nodeH;
-    const x2 = to.x + nodeW / 2, y2 = to.y;
-    svg += `<line class="graph-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6a6a6a" stroke-width="2" marker-end="url(#arrowhead)">`;
-    if (e.task) svg += `<title>${escapeHtml(e.task)}</title>`;
-    svg += `</line>`;
-  }
+  // Node lookup by id
+  const nodeById = {};
+  for (const n of nodes) nodeById[n.id] = n;
 
-  // Draw nodes
-  for (const n of nodes) {
-    const pos = positions[n.id];
-    if (!pos) continue;
+  // Helper: render a single enriched node
+  function renderNode(n, pos) {
     const color = statusColors[n.status] || '#6a6a6a';
     const isWorking = n.status === 'working';
-    svg += `<g class="graph-node${isWorking ? ' graph-node-pulse' : ''}">`;
-    svg += `<rect x="${pos.x}" y="${pos.y}" width="${nodeW}" height="${nodeH}" rx="8" ry="8" fill="#252526" stroke="${color}" stroke-width="2"/>`;
-    svg += `<text class="graph-label" x="${pos.x + nodeW / 2}" y="${pos.y + nodeH / 2 + 5}" text-anchor="middle" fill="#cccccc" font-size="12">${n.icon || '🤖'} ${escapeHtml(n.id)}</text>`;
-    svg += `</g>`;
+    const pEmoji = phaseIcon(n.phase);
+    const nodeHt = pos.h;
+    let g = `<g class="graph-node${isWorking ? ' graph-node-working' : ''}">`;
+    g += `<rect x="${pos.x}" y="${pos.y}" width="${nodeW}" height="${nodeHt}" rx="8" ry="8" fill="#252526" stroke="${color}" stroke-width="2"/>`;
+    const nameY = n.currentTask ? pos.y + 24 : pos.y + nodeHt / 2 + 5;
+    g += `<text class="graph-label" x="${pos.x + nodeW / 2}" y="${nameY}" text-anchor="middle" fill="#cccccc" font-size="12">${pEmoji ? pEmoji + ' ' : ''}${n.icon || '🤖'} ${escapeHtml(n.id)}</text>`;
+    if (n.currentTask) {
+      const taskText = n.currentTask.length > 20 ? n.currentTask.slice(0, 20) + '…' : n.currentTask;
+      g += `<text class="graph-label" x="${pos.x + nodeW / 2}" y="${pos.y + 48}" text-anchor="middle" fill="#9d9d9d" font-size="10">${escapeHtml(taskText)}</text>`;
+    }
+    g += `</g>`;
+    return g;
   }
 
-  svg += `</svg>`;
-  container.innerHTML = svg;
+  const positions = {};
+  let svgH, maxLevel = 0;
+
+  // Find global max level
+  for (const n of nodes) {
+    if (levels[n.id] > maxLevel) maxLevel = levels[n.id];
+  }
+
+  if (multiWorkstream) {
+    // C3: Group nodes by workstream
+    const wsByName = {};
+    for (const n of nodes) {
+      const ws = n.workstream || 'default';
+      if (!wsByName[ws]) wsByName[ws] = [];
+      wsByName[ws].push(n);
+    }
+    const wsKeys = workstreams.filter(ws => wsByName[ws] && wsByName[ws].length > 0);
+    // Include any workstreams not in the declared list
+    for (const k of Object.keys(wsByName)) {
+      if (!wsKeys.includes(k)) wsKeys.push(k);
+    }
+
+    const colWidth = Math.floor((containerWidth - padX * 2) / wsKeys.length);
+    const levelH = 100;
+    const labelOffset = 24;
+
+    for (let wi = 0; wi < wsKeys.length; wi++) {
+      const wsNodes = wsByName[wsKeys[wi]] || [];
+      const byLevel = {};
+      for (const n of wsNodes) {
+        const lvl = levels[n.id];
+        if (!byLevel[lvl]) byLevel[lvl] = [];
+        byLevel[lvl].push(n);
+      }
+      const colStart = padX + wi * colWidth;
+      for (const lvlStr of Object.keys(byLevel)) {
+        const lvl = parseInt(lvlStr, 10);
+        const row = byLevel[lvl];
+        const totalW = row.length * nodeW + (row.length - 1) * 20;
+        let startX = colStart + (colWidth - totalW) / 2;
+        if (startX < colStart) startX = colStart;
+        row.forEach((n, i) => {
+          positions[n.id] = {
+            x: startX + i * (nodeW + 20),
+            y: padY + labelOffset + lvl * levelH,
+            h: n.currentTask ? 70 : 50,
+          };
+        });
+      }
+    }
+
+    svgH = (maxLevel + 1) * levelH + padY * 2 + labelOffset;
+
+    // Build SVG with workstream markers
+    let markerDefs = '<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6a6a6a"/></marker>';
+    wsKeys.forEach((ws, i) => {
+      const c = wsColorMap[ws] || wsColors[i % wsColors.length];
+      markerDefs += `<marker id="arrow-ws${i}" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="${c}"/></marker>`;
+    });
+
+    let svg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${containerWidth} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+    svg += `<defs>${markerDefs}</defs>`;
+
+    // Draw workstream labels and dividers
+    for (let wi = 0; wi < wsKeys.length; wi++) {
+      const colStart = padX + wi * colWidth;
+      const wsColor = wsColorMap[wsKeys[wi]] || wsColors[wi % wsColors.length];
+      svg += `<text x="${colStart + colWidth / 2}" y="${padY + 12}" text-anchor="middle" fill="${wsColor}" font-size="11" font-weight="600" opacity="0.7">${escapeHtml(wsKeys[wi])}</text>`;
+      if (wi > 0) {
+        svg += `<line x1="${colStart}" y1="${padY}" x2="${colStart}" y2="${svgH - padY}" stroke="#3c3c3c" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>`;
+      }
+    }
+
+    // Draw edges with workstream accent colors
+    for (const e of edges) {
+      const from = positions[e.from];
+      const to = positions[e.to];
+      if (!from || !to) continue;
+      const fromNode = nodeById[e.from];
+      const toNode = nodeById[e.to];
+      const fromWs = fromNode ? fromNode.workstream : null;
+      const wsIdx = wsKeys.indexOf(fromWs);
+      const edgeColor = (wsIdx >= 0) ? (wsColorMap[fromWs] || '#6a6a6a') : '#6a6a6a';
+      const markerId = (wsIdx >= 0) ? `arrow-ws${wsIdx}` : 'arrowhead';
+      const isCross = fromNode && toNode && fromNode.workstream !== toNode.workstream;
+      const x1 = from.x + nodeW / 2, y1 = from.y + from.h;
+      const x2 = to.x + nodeW / 2, y2 = to.y;
+      svg += `<line class="graph-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${edgeColor}" stroke-width="2" ${isCross ? 'stroke-dasharray="6,3"' : ''} marker-end="url(#${markerId})">`;
+      if (e.task) svg += `<title>${escapeHtml(e.task)}</title>`;
+      svg += `</line>`;
+    }
+
+    // Draw nodes
+    for (const n of nodes) {
+      const pos = positions[n.id];
+      if (pos) svg += renderNode(n, pos);
+    }
+
+    svg += `</svg>`;
+    container.innerHTML = svg;
+  } else {
+    // Single workstream — centered layout with enriched nodes
+    const byLevel = {};
+    for (const n of nodes) {
+      const lvl = levels[n.id];
+      if (!byLevel[lvl]) byLevel[lvl] = [];
+      byLevel[lvl].push(n);
+    }
+
+    const levelH = 100;
+    for (let lvl = 0; lvl <= maxLevel; lvl++) {
+      const row = byLevel[lvl] || [];
+      const totalW = row.length * nodeW + (row.length - 1) * 30;
+      let startX = (containerWidth - totalW) / 2;
+      if (startX < padX) startX = padX;
+      row.forEach((n, i) => {
+        positions[n.id] = {
+          x: startX + i * (nodeW + 30),
+          y: padY + lvl * levelH,
+          h: n.currentTask ? 70 : 50,
+        };
+      });
+    }
+
+    svgH = (maxLevel + 1) * levelH + padY * 2;
+
+    let svg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${containerWidth} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+    svg += `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6a6a6a"/></marker></defs>`;
+
+    // Draw edges
+    for (const e of edges) {
+      const from = positions[e.from];
+      const to = positions[e.to];
+      if (!from || !to) continue;
+      const x1 = from.x + nodeW / 2, y1 = from.y + from.h;
+      const x2 = to.x + nodeW / 2, y2 = to.y;
+      svg += `<line class="graph-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6a6a6a" stroke-width="2" marker-end="url(#arrowhead)">`;
+      if (e.task) svg += `<title>${escapeHtml(e.task)}</title>`;
+      svg += `</line>`;
+    }
+
+    // Draw enriched nodes
+    for (const n of nodes) {
+      const pos = positions[n.id];
+      if (pos) svg += renderNode(n, pos);
+    }
+
+    svg += `</svg>`;
+    container.innerHTML = svg;
+  }
 }
 
 // ── View Toggle ────────────────────────────────────────────
@@ -474,7 +634,7 @@ async function refresh() {
       fetchJSON('/api/graph'),
     ]);
 
-    renderSummary(summary);
+    renderSummary(summary, graphData, agents);
     renderAgents(agents, events);
     renderGraph(graphData);
     renderActivity(activity);

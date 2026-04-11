@@ -641,6 +641,20 @@ footer {
   50% { stroke-opacity: 0.4; }
 }
 
-.graph-node-pulse rect {
-  animation: graph-pulse 1.5s ease-in-out infinite;
+/* Working node shimmer + glow */
+@keyframes graph-shimmer {
+  0% { filter: drop-shadow(0 0 2px var(--status-working)); }
+  50% { filter: drop-shadow(0 0 8px var(--status-working)); }
+  100% { filter: drop-shadow(0 0 2px var(--status-working)); }
 }
+
+.graph-node-working {
+  animation: graph-shimmer 2s ease-in-out infinite;
+}
+
+.graph-node-working rect {
+  animation: graph-pulse 1.5s ease-in-out infinite;
+  stroke-width: 2.5;
+}
+
+
