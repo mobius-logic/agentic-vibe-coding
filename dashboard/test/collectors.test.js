@@ -112,6 +112,70 @@ describe('events collector', () => {
     assert.deepEqual(graph.nodes, []);
     assert.deepEqual(graph.edges, []);
   });
+
+  it('getActiveAgents resets state on re-spawn', () => {
+    const tmpFile = path.join(os.tmpdir(), `respawn-events-${Date.now()}.jsonl`);
+    const events = [
+      JSON.stringify({ ts: '2026-04-10T10:00:00Z', agent: 'architect', event: 'spawned' }),
+      JSON.stringify({ ts: '2026-04-10T10:01:00Z', agent: 'architect', event: 'branch-created', branch: 'feature/arch/x' }),
+      JSON.stringify({ ts: '2026-04-10T10:02:00Z', agent: 'architect', event: 'plan-loaded', plan: '.plans/test.md', taskTotal: 5 }),
+      JSON.stringify({ ts: '2026-04-10T10:03:00Z', agent: 'architect', event: 'task-completed', taskTotal: 5 }),
+      JSON.stringify({ ts: '2026-04-10T10:04:00Z', agent: 'architect', event: 'session-complete' }),
+      JSON.stringify({ ts: '2026-04-10T11:00:00Z', agent: 'architect', event: 'spawned' }),
+    ].join('\n') + '\n';
+    fs.writeFileSync(tmpFile, events, 'utf8');
+    try {
+      const agents = getActiveAgents(tmpFile);
+      const arch = agents.find(a => a.agent === 'architect');
+      assert.ok(arch);
+      assert.equal(arch.status, 'active');
+      assert.equal(arch.branch, null);
+      assert.equal(arch.plan, null);
+      assert.equal(arch.tasksCompleted, 0);
+      assert.equal(arch.tasksTotal, 0);
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it('getActiveAgents handles heartbeat events', () => {
+    const tmpFile = path.join(os.tmpdir(), `heartbeat-events-${Date.now()}.jsonl`);
+    const events = [
+      JSON.stringify({ ts: '2026-04-10T10:00:00Z', agent: 'architect', event: 'spawned' }),
+      JSON.stringify({ ts: '2026-04-10T10:01:00Z', agent: 'architect', event: 'heartbeat', detail: 'Reading files', phase: 'searching' }),
+    ].join('\n') + '\n';
+    fs.writeFileSync(tmpFile, events, 'utf8');
+    try {
+      const agents = getActiveAgents(tmpFile);
+      const arch = agents.find(a => a.agent === 'architect');
+      assert.ok(arch);
+      assert.equal(arch.status, 'working');
+      assert.equal(arch.currentTask, 'Reading files');
+      assert.equal(arch.phase, 'searching');
+      assert.equal(arch.lastHeartbeat, '2026-04-10T10:01:00Z');
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it('getActiveAgents includes phase and lastHeartbeat in state shape', () => {
+    const tmpFile = path.join(os.tmpdir(), `shape-events-${Date.now()}.jsonl`);
+    const events = [
+      JSON.stringify({ ts: '2026-04-10T10:00:00Z', agent: 'architect', event: 'spawned' }),
+    ].join('\n') + '\n';
+    fs.writeFileSync(tmpFile, events, 'utf8');
+    try {
+      const agents = getActiveAgents(tmpFile);
+      const arch = agents.find(a => a.agent === 'architect');
+      assert.ok(arch);
+      assert.ok('phase' in arch);
+      assert.ok('lastHeartbeat' in arch);
+      assert.equal(arch.phase, null);
+      assert.equal(arch.lastHeartbeat, null);
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
 });
 
 // ── Plans Collector ────────────────────────────────────────

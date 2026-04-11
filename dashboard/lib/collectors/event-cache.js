@@ -127,6 +127,8 @@ class EventCache {
         tasksTotal: 0,
         lastEvent: null,
         lastEventTime: null,
+        phase: null,
+        lastHeartbeat: null,
       };
     }
 
@@ -137,6 +139,19 @@ class EventCache {
     switch (evt.event) {
       case 'spawned':
         state.status = 'active';
+        state.branch = null;
+        state.plan = null;
+        state.tasksCompleted = 0;
+        state.tasksTotal = 0;
+        state.currentTask = null;
+        state.phase = null;
+        state.lastHeartbeat = null;
+        break;
+      case 'heartbeat':
+        state.status = 'working';
+        state.currentTask = evt.detail || 'Working...';
+        state.phase = evt.phase || null;
+        state.lastHeartbeat = evt.ts;
         break;
       case 'plan-loaded':
       case 'plan-saved':
@@ -176,19 +191,36 @@ class EventCache {
   }
 
   _updateGraph(evt) {
-    // Ensure the agent node exists
     const name = evt.agent;
+
+    // On spawn, prune completed/idle nodes and orphaned edges
+    if (evt.event === 'spawned') {
+      this._graph.nodes = this._graph.nodes.filter(n => {
+        const s = this._agentState[n.id];
+        return s && s.status !== 'completed' && s.status !== 'idle';
+      });
+      const activeIds = new Set(this._graph.nodes.map(n => n.id));
+      this._graph.edges = this._graph.edges.filter(e =>
+        activeIds.has(e.from) && activeIds.has(e.to)
+      );
+    }
+
+    // Ensure the agent node exists
     if (!this._graph.nodes.find(n => n.id === name)) {
       this._graph.nodes.push({
         id: name,
         status: this._agentState[name] ? this._agentState[name].status : 'idle',
         icon: ICONS[name] || '🤖',
+        currentTask: null,
+        phase: null,
       });
     } else {
-      // Update status on existing node
+      // Update status + enrichment on existing node
       const node = this._graph.nodes.find(n => n.id === name);
       if (this._agentState[name]) {
         node.status = this._agentState[name].status;
+        node.currentTask = this._agentState[name].currentTask || null;
+        node.phase = this._agentState[name].phase || null;
       }
     }
 
@@ -203,6 +235,8 @@ class EventCache {
             id: childName,
             status: this._agentState[childName] ? this._agentState[childName].status : 'idle',
             icon: ICONS[childName] || '🤖',
+            currentTask: null,
+            phase: null,
           });
         }
         this._graph.edges.push({
@@ -221,15 +255,54 @@ class EventCache {
     return this._events.slice();
   }
 
+  _isStale(agentName, maxAgeMs = 60000) {
+    const state = this._agentState[agentName];
+    if (!state || !state.lastHeartbeat) return false;
+    return (Date.now() - new Date(state.lastHeartbeat).getTime()) > maxAgeMs;
+  }
+
   getActiveAgents() {
-    return Object.values(this._agentState);
+    return Object.values(this._agentState).map(agent => {
+      const copy = { ...agent };
+      if (copy.status === 'working' && this._isStale(copy.agent)) {
+        copy.status = 'active';
+      }
+      return copy;
+    });
   }
 
   getGraph() {
+    const nodes = this._graph.nodes.map(n => {
+      const copy = { ...n };
+      // Annotate with workstream
+      const agentState = this._agentState[n.id];
+      if (agentState && agentState.workstream) {
+        copy.workstream = agentState.workstream;
+      } else {
+        // Trace parent chain to find root
+        copy.workstream = this._inferWorkstream(n.id);
+      }
+      return copy;
+    });
+    const workstreams = [...new Set(nodes.map(n => n.workstream).filter(Boolean))];
     return {
-      nodes: this._graph.nodes.slice(),
+      nodes,
       edges: this._graph.edges.slice(),
+      workstreams,
     };
+  }
+
+  _inferWorkstream(agentId) {
+    // Find root ancestor by tracing edges backwards
+    const visited = new Set();
+    let current = agentId;
+    while (!visited.has(current)) {
+      visited.add(current);
+      const parentEdge = this._graph.edges.find(e => e.to === current);
+      if (!parentEdge) break;
+      current = parentEdge.from;
+    }
+    return current;
   }
 
   destroy() {

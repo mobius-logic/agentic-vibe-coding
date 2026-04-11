@@ -46,6 +46,8 @@ function logAgentEvent(opts) {
   if (opts.taskTotal !== undefined) entry.taskTotal = opts.taskTotal;
   if (opts.status !== undefined) entry.status = opts.status;
   if (opts.detail !== undefined) entry.detail = opts.detail;
+  if (opts.phase !== undefined) entry.phase = opts.phase;
+  if (opts.workstream !== undefined) entry.workstream = opts.workstream;
 
   if (!fs.existsSync(eventsDir)) {
     fs.mkdirSync(eventsDir, { recursive: true });
