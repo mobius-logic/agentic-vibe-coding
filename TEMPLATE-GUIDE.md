@@ -489,6 +489,12 @@ The sync script:
 3. Fetches and merges the latest template changes
 4. Leaves `.plans/`, `.agent-logs/`, and `README.md` untouched
 
+> **Codespace note:** Both scripts auto-detect GitHub Codespaces and configure the
+> `gh` CLI as the Git credential helper. This is needed because the default
+> Codespace `GITHUB_TOKEN` is scoped to the current repo and cannot fetch from the
+> upstream template. The `gh` CLI (pre-installed in Codespaces) provides the user's
+> full GitHub permissions.
+
 ### Automated Sync via GitHub Actions (Optional)
 
 For hands-off updates, enable the included workflow in your child repo:

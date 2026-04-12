@@ -45,6 +45,19 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
+# ── Codespace authentication ────────────────────────────────────────────────
+# Codespaces have a scoped GITHUB_TOKEN that can only access the current repo.
+# Use the gh CLI credential helper to authenticate with the user's full GitHub
+# permissions when fetching from a different (upstream) repository.
+if [ "${CODESPACES:-}" = "true" ] || [ -n "${CODESPACE_NAME:-}" ]; then
+    if command -v gh &>/dev/null; then
+        info "Codespace detected - configuring gh CLI as Git credential helper..."
+        gh auth setup-git 2>/dev/null || warn "gh auth setup-git failed; fetch may fail if upstream is private"
+    else
+        warn "Codespace detected but gh CLI not found. Fetch may fail for private repos."
+    fi
+fi
+
 # ── 1. Configure upstream remote ────────────────────────────────────────────
 if git remote get-url "$UPSTREAM_REMOTE" &>/dev/null; then
     CURRENT_URL=$(git remote get-url "$UPSTREAM_REMOTE")
