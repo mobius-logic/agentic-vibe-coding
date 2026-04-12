@@ -100,7 +100,7 @@ function serveStatic(res, filePath) {
  */
 const apiHandlers = {
   '/api/agents'(_req, res) {
-    const agents = getActiveAgents();
+    const agents = eventCache.getActiveAgents();
     const activity = getCachedActivity();
 
     // Build set of agents known from events (any status)
@@ -119,6 +119,8 @@ const apiHandlers = {
           tasksTotal: 0,
           lastEvent: 'inferred-from-logs',
           lastEventTime: activity.timestamp,
+          phase: null,
+          lastHeartbeat: null,
         });
       }
     }

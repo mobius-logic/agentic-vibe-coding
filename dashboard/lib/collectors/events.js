@@ -64,6 +64,8 @@ function getActiveAgents(eventsFile) {
         tasksTotal: 0,
         lastEvent: null,
         lastEventTime: null,
+        phase: null,
+        lastHeartbeat: null,
       };
     }
 
@@ -74,6 +76,19 @@ function getActiveAgents(eventsFile) {
     switch (evt.event) {
       case 'spawned':
         state.status = 'active';
+        state.branch = null;
+        state.plan = null;
+        state.tasksCompleted = 0;
+        state.tasksTotal = 0;
+        state.currentTask = null;
+        state.phase = null;
+        state.lastHeartbeat = null;
+        break;
+      case 'heartbeat':
+        state.status = 'working';
+        state.currentTask = evt.detail || 'Working...';
+        state.phase = evt.phase || null;
+        state.lastHeartbeat = evt.ts;
         break;
       case 'plan-loaded':
       case 'plan-saved':

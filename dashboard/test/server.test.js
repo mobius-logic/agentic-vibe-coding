@@ -6,7 +6,7 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
-const { createServer } = require('../server');
+const { createServer, eventCache } = require('../server');
 
 let server;
 let baseUrl;
@@ -39,6 +39,7 @@ describe('dashboard server', () => {
   });
 
   after((_, done) => {
+    eventCache.destroy();
     server.close(done);
   });
 
