@@ -43,6 +43,72 @@ The dashboard server exposes the following REST API endpoints:
 
 Start the dashboard: `node dashboard/start.js` (opens at http://127.0.0.1:4820)
 
+### Agent Event Types
+
+Agents emit structured events via `dashboard/lib/emit-event.js`. The following event types are recognized:
+
+| Event | Purpose | Key Fields |
+|-------|---------|------------|
+| `spawned` | Agent session started (resets prior state, prunes completed agents from graph) | — |
+| `task-started` | Agent began a task | `--task`, `--taskIndex`, `--taskTotal` |
+| `task-completed` | Agent finished a task | `--task`, `--status` |
+| `session-complete` | Agent session ended | `--status` |
+| `branch-created` | Agent created a git branch | `--branch` |
+| `question-asked` | Agent asked the user a question | `--detail` |
+| `heartbeat` | Signal that an agent is alive and describe current activity | `--detail`, `--phase` |
+
+#### Heartbeat Events
+
+Agents emit `heartbeat` events periodically (every 15–30s) while actively working. This lets dashboard-only users see real-time activity. Agents with no heartbeat for 60 seconds are downgraded from "working" to "active" status.
+
+The `--phase` argument describes what the agent is currently doing:
+
+| Phase | Meaning |
+|-------|---------|
+| `thinking` | Reasoning / planning |
+| `coding` | Writing or editing code |
+| `searching` | Reading files / searching codebase |
+| `reviewing` | Reviewing code or docs |
+| `waiting` | Waiting for subagent or user |
+| `delegating` | Delegating work to a subagent |
+
+#### Workstream Grouping
+
+When multiple agents work in parallel (e.g. `backend-lead` and `frontend-lead` in separate Codespaces), the dashboard groups them into **workstreams**. Pass `--workstream <name>` on any event to explicitly set the workstream, or it will be inferred from the agent's position in the delegation graph.
+
+#### emit-event.js CLI Usage
+
+```
+node dashboard/lib/emit-event.js <agent> <event> [options]
+```
+
+**Options:**
+
+| Argument | Description |
+|----------|-------------|
+| `--task` | Task description |
+| `--taskIndex` | Current task number (integer) |
+| `--taskTotal` | Total tasks (integer) |
+| `--branch` | Branch name |
+| `--plan` | Plan file path |
+| `--status` | Status string (e.g. `done`) |
+| `--detail` | Human-readable detail (used by `heartbeat` and `question-asked`) |
+| `--phase` | Agent activity phase (`thinking`, `coding`, `searching`, `reviewing`, `waiting`, `delegating`) |
+| `--workstream` | Workstream label for parallel workflow grouping |
+
+**Examples:**
+
+```bash
+# Agent spawned (resets previous session state)
+node dashboard/lib/emit-event.js architect spawned
+
+# Heartbeat with phase
+node dashboard/lib/emit-event.js backend-lead heartbeat --detail "Implementing auth module" --phase coding
+
+# Task started in a named workstream
+node dashboard/lib/emit-event.js backend-lead task-started --task "Implement auth" --workstream backend
+```
+
 ## Development
 
 This project uses a multi-agent workflow powered by GitHub Copilot. To contribute:
