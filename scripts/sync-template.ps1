@@ -44,6 +44,22 @@ if ($dirty) {
     exit 1
 }
 
+# ── Codespace authentication ────────────────────────────────────────────────
+# Codespaces have a scoped GITHUB_TOKEN that can only access the current repo.
+# Use the gh CLI credential helper to authenticate with the user's full GitHub
+# permissions when fetching from a different (upstream) repository.
+if ($env:CODESPACES -eq "true" -or $env:CODESPACE_NAME) {
+    $ghPath = Get-Command gh -ErrorAction SilentlyContinue
+    if ($ghPath) {
+        Write-Info "Codespace detected - configuring gh CLI as Git credential helper..."
+        $ErrorActionPreference = "SilentlyContinue"
+        gh auth setup-git 2>$null
+        $ErrorActionPreference = "Stop"
+    } else {
+        Write-Warn "Codespace detected but gh CLI not found. Fetch may fail for private repos."
+    }
+}
+
 # ── 1. Configure upstream remote ────────────────────────────────────────────
 $ErrorActionPreference = "SilentlyContinue"
 $currentUrl = git remote get-url $UpstreamRemote 2>$null
