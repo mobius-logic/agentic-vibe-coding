@@ -20,3 +20,23 @@
 - **Subagents Invoked**: None (simple config fix executed directly per delegation payload)
 - **Lessons Learned**: The `javascript-node` devcontainer image uses `node` as default user, not `codespace`
 - **Status**: done
+
+## 2026-04-12 16:33:16 — Session Summary
+- **Architecture/Plan Reference**: N/A — infrastructure bug fix for Codespace Git authentication
+- **Branch**: fix/infra/sync-template-codespace-auth
+- **Commit**: 7ec4d4f
+- **Approved Execution Plan**:
+  1. Add Codespace detection + gh CLI auth block to sync-template.sh (AC: detects CODESPACES/CODESPACE_NAME, runs gh auth setup-git, warns if gh missing)
+  2. Add equivalent Codespace auth block to sync-template.ps1 (AC: same detection and auth logic in PowerShell)
+  3. Update TEMPLATE-GUIDE.md with Codespace auth note (AC: note added to sync section)
+  4. Validate syntax of both scripts (AC: bash -n passes, PowerShell parser passes)
+- **Tasks Completed**:
+  - Added Codespace gh CLI auth block to scripts/sync-template.sh
+  - Added equivalent Codespace auth block to scripts/sync-template.ps1
+  - Updated TEMPLATE-GUIDE.md with Codespace auth note in sync section
+  - Validated bash syntax (OK) and PowerShell syntax (OK)
+- **Files Changed**: scripts/sync-template.sh, scripts/sync-template.ps1, TEMPLATE-GUIDE.md
+- **Fixes Applied**: Codespace GITHUB_TOKEN is scoped to current repo only, causing 403 on upstream fetch. Fixed by auto-configuring gh CLI credential helper in Codespaces.
+- **Subagents Invoked**: None (direct implementation per delegation payload)
+- **Lessons Learned**: Em-dash (U+2014) characters in string literals cause PowerShell parse errors when written by VS Code tooling on Windows — use ASCII dashes instead
+- **Status**: done
