@@ -40,3 +40,24 @@
 - **Subagents Invoked**: None (direct implementation per delegation payload)
 - **Lessons Learned**: Em-dash (U+2014) characters in string literals cause PowerShell parse errors when written by VS Code tooling on Windows — use ASCII dashes instead
 - **Status**: done
+
+## 2026-04-13 20:45:39 — Session Summary
+- **Architecture/Plan Reference**: N/A — infrastructure/dependency fix (devcontainer config change)
+- **Branch**: fix/infra/devcontainer-gh-cli
+- **Commit**: 8422bdd
+- **Approved Execution Plan**:
+  1. Add `ghcr.io/devcontainers/features/github-cli:1` to features block (AC: feature present in JSON)
+  2. Update postCreateCommand to run `gh auth setup-git` before echo (AC: command present, echo preserved)
+  3. All other settings unchanged (AC: image, extensions, settings, remoteUser identical)
+  4. Valid JSON (AC: JSON.parse succeeds)
+  5. Existing tests pass (AC: 55/55 pass, 0 failures)
+- **Tasks Completed**:
+  - Added GitHub CLI devcontainer feature
+  - Updated postCreateCommand with defensive gh auth setup-git
+  - Validated all acceptance criteria (JSON valid, features correct, command present, echo preserved, no regressions)
+  - All 55 dashboard tests pass (event-cache, collectors, server)
+- **Files Changed**: `.devcontainer/devcontainer.json`
+- **Fixes Applied**: Codespace sessions lacked `gh` CLI (causing `gh: command not found`) and git auth wasn't configured for cross-repo operations (causing `write access to repository not granted`). Fixed by adding github-cli feature and auto-running `gh auth setup-git` on container creation.
+- **Subagents Invoked**: Self-executed (developer, tester, code-reviewer, docs-writer roles performed inline per delegation payload)
+- **Lessons Learned**: The `command -v gh >/dev/null 2>&1` pattern is the correct POSIX-compliant way to check for command existence in shell one-liners
+- **Status**: done
