@@ -45,18 +45,53 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-# ── Codespace authentication ────────────────────────────────────────────────
-# Codespaces have a scoped GITHUB_TOKEN that can only access the current repo.
-# Use the gh CLI credential helper to authenticate with the user's full GitHub
-# permissions when fetching from a different (upstream) repository.
-if [ "${CODESPACES:-}" = "true" ] || [ -n "${CODESPACE_NAME:-}" ]; then
-    if command -v gh &>/dev/null; then
-        info "Codespace detected - configuring gh CLI as Git credential helper..."
-        gh auth setup-git 2>/dev/null || warn "gh auth setup-git failed; fetch may fail if upstream is private"
-    else
-        warn "Codespace detected but gh CLI not found. Fetch may fail for private repos."
+# ── Codespace upstream access check ─────────────────────────────────────────
+# In Codespaces the default GITHUB_TOKEN is scoped to the current repo only.
+# gh auth setup-git routes git credentials through gh, but the token still
+# cannot access a different (upstream) repo. This function detects that
+# situation and directs the user to run `gh auth login` for a full-scope token.
+check_upstream_access() {
+    # Only needed in Codespaces where GITHUB_TOKEN is repo-scoped
+    if [ "${CODESPACES:-}" != "true" ] && [ -z "${CODESPACE_NAME:-}" ]; then
+        return 0
     fi
-fi
+
+    if ! command -v gh &>/dev/null; then
+        warn "Codespace detected but gh CLI not found."
+        warn "If fetch fails, install gh or use a PAT."
+        return 0
+    fi
+
+    # Ensure gh credential helper is active
+    gh auth setup-git 2>/dev/null || true
+
+    # Extract owner/repo from upstream URL
+    local url
+    url=$(git remote get-url "$UPSTREAM_REMOTE" 2>/dev/null) || return 0
+    local slug
+    slug=$(echo "$url" | sed -E 's#.*github\.com[:/]##; s/\.git$//')
+
+    if [ -z "$slug" ] || ! echo "$slug" | grep -q '/'; then
+        warn "Cannot parse upstream repo slug from URL: $url"
+        return 0
+    fi
+
+    info "Checking access to upstream repo ($slug)..."
+    if gh api "repos/$slug" --silent 2>/dev/null; then
+        info "Access confirmed."
+        return 0
+    fi
+
+    error "Cannot access upstream repo: $slug"
+    error "The Codespace token is scoped to the current repo only."
+    error ""
+    error "Fix: run 'gh auth login' to authenticate with your GitHub account,"
+    error "then re-run this script."
+    error ""
+    error "  gh auth login"
+    error "  ./scripts/sync-template.sh"
+    exit 1
+}
 
 # ── 1. Configure upstream remote ────────────────────────────────────────────
 if git remote get-url "$UPSTREAM_REMOTE" &>/dev/null; then
@@ -85,6 +120,7 @@ else
 fi
 
 # ── 3. Fetch upstream ───────────────────────────────────────────────────────
+check_upstream_access
 info "Fetching upstream/$UPSTREAM_BRANCH..."
 git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 

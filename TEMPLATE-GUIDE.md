@@ -489,11 +489,12 @@ The sync script:
 3. Fetches and merges the latest template changes
 4. Leaves `.plans/`, `.agent-logs/`, and `README.md` untouched
 
-> **Codespace note:** Both scripts auto-detect GitHub Codespaces and configure the
-> `gh` CLI as the Git credential helper. This is needed because the default
-> Codespace `GITHUB_TOKEN` is scoped to the current repo and cannot fetch from the
-> upstream template. The `gh` CLI (pre-installed in Codespaces) provides the user's
-> full GitHub permissions.
+> **Codespace note:** Both scripts auto-detect GitHub Codespaces and verify
+> access to the upstream template repo before fetching. The default Codespace
+> `GITHUB_TOKEN` is scoped to the current repo only — it cannot access the
+> upstream template. The scripts configure `gh` as the Git credential helper and
+> test API access. If access fails, you will see a clear error message directing
+> you to run `gh auth login` to authenticate with your full GitHub account.
 
 ### Automated Sync via GitHub Actions (Optional)
 

@@ -61,3 +61,22 @@
 - **Subagents Invoked**: Self-executed (developer, tester, code-reviewer, docs-writer roles performed inline per delegation payload)
 - **Lessons Learned**: The `command -v gh >/dev/null 2>&1` pattern is the correct POSIX-compliant way to check for command existence in shell one-liners
 - **Status**: done
+
+## 2026-04-13 21:07:29 — Session Summary
+- **Architecture/Plan Reference**: .plans/2026-04-13-sync-template-codespace-token-scope-fix.md
+- **Branch**: fix/infra/sync-template-token-scope
+- **Commit**: 0d56f50
+- **Approved Execution Plan**:
+  1. Replace Codespace auth block in sync-template.sh with check_upstream_access function (AC: detects Codespace, tests API access, exits with clear gh auth login message on failure)
+  2. Replace Codespace auth block in sync-template.ps1 with Test-UpstreamAccess function (AC: same logic in PowerShell)
+  3. Update TEMPLATE-GUIDE.md Codespace note (AC: reflects new access-check behavior)
+- **Tasks Completed**:
+  - Replaced fire-and-forget gh auth setup-git block with pre-fetch access-check function in sync-template.sh
+  - Replaced equivalent block in sync-template.ps1 with Test-UpstreamAccess function
+  - Updated TEMPLATE-GUIDE.md Codespace note to reflect new behavior
+  - Fixed CRLF line endings in sync-template.sh (Windows tooling introduced them)
+- **Files Changed**: scripts/sync-template.sh, scripts/sync-template.ps1, TEMPLATE-GUIDE.md
+- **Fixes Applied**: Old Codespace auth block only ran `gh auth setup-git` which configures git's credential helper but doesn't upgrade the scoped token. New approach tests actual API access to upstream repo and gives clear error with `gh auth login` instructions.
+- **Subagents Invoked**: Self-executed (developer, tester, code-reviewer, docs-writer roles performed inline per delegation payload)
+- **Lessons Learned**: Windows VS Code file editing introduces CRLF line endings in .sh files — must convert to LF before bash -n validation. Use [System.IO.File]::WriteAllText with explicit LF replacement.
+- **Status**: done
