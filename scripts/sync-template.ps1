@@ -62,6 +62,10 @@ function Test-UpstreamAccess {
         return
     }
 
+    # Clear the Codespace-scoped GITHUB_TOKEN so gh uses stored credentials
+    # (or prompts for login) instead of the repo-scoped installation token.
+    Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+
     # Ensure gh credential helper is active
     $ErrorActionPreference = "SilentlyContinue"
     gh auth setup-git 2>$null
@@ -93,9 +97,9 @@ function Test-UpstreamAccess {
     Write-Err "Cannot access upstream repo: $slug"
     Write-Err "The Codespace token is scoped to the current repo only."
     Write-Err ""
-    Write-Err "Fix: run 'gh auth login' to authenticate with your GitHub account,"
-    Write-Err "then re-run this script."
+    Write-Err "Fix: clear the scoped token and log in with your GitHub account:"
     Write-Err ""
+    Write-Err "  Remove-Item Env:GITHUB_TOKEN"
     Write-Err "  gh auth login"
     Write-Err "  .\scripts\sync-template.ps1"
     exit 1

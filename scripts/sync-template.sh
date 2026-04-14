@@ -62,6 +62,10 @@ check_upstream_access() {
         return 0
     fi
 
+    # Clear the Codespace-scoped GITHUB_TOKEN so gh uses stored credentials
+    # (or prompts for login) instead of the repo-scoped installation token.
+    unset GITHUB_TOKEN
+
     # Ensure gh credential helper is active
     gh auth setup-git 2>/dev/null || true
 
@@ -85,9 +89,9 @@ check_upstream_access() {
     error "Cannot access upstream repo: $slug"
     error "The Codespace token is scoped to the current repo only."
     error ""
-    error "Fix: run 'gh auth login' to authenticate with your GitHub account,"
-    error "then re-run this script."
+    error "Fix: clear the scoped token and log in with your GitHub account:"
     error ""
+    error "  unset GITHUB_TOKEN"
     error "  gh auth login"
     error "  ./scripts/sync-template.sh"
     exit 1
