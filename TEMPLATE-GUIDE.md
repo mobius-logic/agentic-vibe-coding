@@ -107,10 +107,12 @@ The architect-first workflow ensures a coherent system design before any code is
 4. The architect produces a **System Architecture Document** covering all layers (frontend, backend, data, infra)
 5. You **approve, revise, or reject** the architecture
 6. The approved architecture is saved to `.plans/<date>-<time>-architecture-<name>.md`
-7. The architect **decomposes the architecture into workstream task briefs** — one per team lead
-8. You choose:
-   - **Manual delegation**: Copy-paste each task brief into a separate Copilot Chat session or Codespace
-   - **Automated delegation**: Tell the architect to invoke the team leads directly
+7. The architect **determines your execution mode** — asks whether you're using local VS Code (sequential) or GitHub Codespaces (parallel), analyzes workstream dependencies, and produces a **Launch Plan** with execution waves
+8. You **review and confirm the Launch Plan**
+9. The architect **decomposes the architecture into mode-aware workstream task briefs** — each brief includes execution context (wave, parallel peers, prerequisites, sync points)
+10. You choose:
+    - **Manual delegation**: Copy-paste each task brief into a separate Copilot Chat session or Codespace, following the Launch Plan's wave order
+    - **Automated delegation**: Tell the architect to invoke the team leads directly, respecting wave scheduling
 
 #### Direct Team Lead Workflow (Skip Architect)
 
@@ -192,8 +194,10 @@ You are the human orchestrator. Agents write code — you control architecture a
 | 2 | Answer the architect's interview questions (scope, users, tech, scale, security) |
 | 3 | Review the proposed **System Architecture Document** |
 | 4 | Request changes or **approve** the architecture |
-| 5 | Review the **workstream task briefs** the architect produces |
-| 6 | Choose: copy-paste briefs to separate sessions, or tell the architect to delegate |
+| 5 | Answer the architect's **execution mode question** (local VS Code = sequential, Codespaces = parallel, or constrained parallel with a slot count) |
+| 6 | Review the **Launch Plan** — number of waves, Codespace count per wave, sync points |
+| 7 | Review the **mode-aware workstream task briefs** the architect produces |
+| 8 | Choose: copy-paste briefs to separate sessions/Codespaces following the Launch Plan, or tell the architect to delegate |
 
 ### Phase 1: Parallel Workstreams (e.g. Infra + Backend)
 
@@ -242,14 +246,18 @@ git push origin feature/backend/simulation-core --force-with-lease
 
 ### Single-Machine Alternative (No Codespaces)
 
-Run agents sequentially:
+When the architect asks about your execution mode, choose **Sequential (Local VS Code)**. The architect will produce a Launch Plan with a linear execution order and workstream briefs that include `git pull origin main` reminders between steps.
+
+Run agents sequentially in a single VS Code window:
 ```
-@architect → interview → approve architecture → get workstream briefs
-@infra-lead → paste brief → approve plan → wait → push → PR → merge → git pull
-@backend-lead → paste brief → approve plan → wait → push → PR → merge → git pull
-@frontend-lead → paste brief → approve plan → wait → push → PR → merge → git pull
+@architect → interview → approve architecture → confirm sequential mode → review Launch Plan → get workstream briefs
+@infra-lead → paste brief #1 → approve plan → wait → push → PR → merge → git pull
+@backend-lead → paste brief #2 → approve plan → wait → push → PR → merge → git pull
+@frontend-lead → paste brief #3 → approve plan → wait → push → PR → merge → git pull
 @code-reviewer → review
 ```
+
+The Launch Plan's "Sequential Fallback Order" section gives you the exact sequence to follow.
 
 ## Decision Cheat Sheet
 
@@ -257,7 +265,9 @@ Run agents sequentially:
 |-----------|-----------|
 | Starting a new project | Use `@architect` to design the architecture first |
 | Architect presents architecture | Review carefully, ask questions, then approve |
-| Architect produces workstream briefs | Copy each brief to a separate session or tell architect to delegate |
+| Architect asks about execution mode | Answer: local VS Code (sequential), Codespaces (parallel), or constrained parallel with slot count |
+| Architect presents Launch Plan | Review wave structure, Codespace count, sync points, then confirm |
+| Architect produces workstream briefs | Follow the Launch Plan — open Codespaces per wave (parallel) or run leads in order (sequential) |
 | Agent presents a plan | Review it carefully, suggest changes, then approve |
 | Agent says "done" | Check `git log`, skim files, then `git push origin <branch>` |
 | Agent made a mistake | Tell it what's wrong in the same chat session |

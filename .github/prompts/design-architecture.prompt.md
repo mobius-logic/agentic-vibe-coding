@@ -11,5 +11,6 @@ to build. Follow your full workflow:
 2. **Design** — Propose a complete system architecture covering all layers and infrastructure
 3. **Iterate** — Refine with the user until they approve
 4. **Save** — Store the approved architecture in `.plans/`
-5. **Decompose** — Break into workstream task briefs for each team lead
-6. **Hand off** — Present ready-to-use prompts or delegate directly if instructed
+5. **Execution Mode** — Ask the user about their environment (local VS Code vs Codespaces), analyze workstream dependencies, and produce a Launch Plan with execution waves
+6. **Decompose** — Break into mode-aware workstream task briefs for each team lead
+7. **Hand off** — Present ready-to-use prompts with execution instructions (parallel or sequential) or delegate directly if instructed
