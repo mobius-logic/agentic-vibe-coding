@@ -44,13 +44,15 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 
 ## Planning Workflow
 - For new projects, start with `@architect` to design the system architecture before tasking leads
-- The architect iteratively interviews the human, produces architecture documents, and decomposes into workstream briefs
+- The architect iteratively interviews the human, produces architecture documents, determines the execution mode (local sequential vs Codespaces parallel), and decomposes into mode-aware workstream briefs
+- After architecture approval, the architect produces a **Launch Plan** (saved to `.plans/`) that specifies execution waves, Codespace counts, and sync points
 - **Only `@architect` may create or edit files in `.plans/`** — team leads and all other agents treat `.plans/` as read-only
-- Team leads MUST read the relevant `.plans/` file to understand the architectural context before executing
+- Team leads MUST read the relevant `.plans/` file (architecture + launch plan) to understand context and their execution mode before executing
 - Team leads MUST present execution plans to the human user for approval before starting work
 - Team leads log their approved execution details and session summaries in `.agent-logs/`, NOT in `.plans/`
-- Approved plans and architecture documents are saved to `.plans/` with date-timestamped filenames
-- All agents must reference the relevant plan/architecture file in their work and logs
+- Approved plans, architecture documents, and launch plans are saved to `.plans/` with date-timestamped filenames
+- All agents must reference the relevant plan/architecture/launch plan files in their work and logs
+- Workstream briefs include an Execution Context block (mode, wave, parallel peers, prerequisites, sync points)
 - Plans are immutable after approval — they serve as the source of truth
 
 ## Code Quality
