@@ -131,7 +131,7 @@ function createServer() {
       debounceTimer = setTimeout(() => {
         const newEvents = readNewEvents();
         for (const evt of newEvents) {
-          if (evt.event === 'session-start') {
+          if (evt.event === 'session-start' && evt.agent === 'architect') {
             handleSessionStart(evt);
             return; // session-start resets everything
           }
@@ -147,7 +147,7 @@ function createServer() {
     setInterval(() => {
       const newEvents = readNewEvents();
       for (const evt of newEvents) {
-        if (evt.event === 'session-start') {
+        if (evt.event === 'session-start' && evt.agent === 'architect') {
           handleSessionStart(evt);
           return;
         }

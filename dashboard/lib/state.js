@@ -24,6 +24,10 @@ class SessionState {
     this.events.push(evt);
 
     if (evt.event === 'session-start') {
+      if (evt.agent !== 'architect') {
+        // Ignore session-start from non-architect agents
+        return;
+      }
       this.reset();
       this.events.push(evt);
       this.sessionStart = evt.ts;
@@ -94,7 +98,7 @@ class SessionState {
       case 'plan-saved':
         if (evt.plan) {
           this._setAgentField(evt.agent, 'plan', evt.plan);
-          if (!this.planPath) this.planPath = evt.plan;
+          this.planPath = evt.plan;
         }
         break;
 
