@@ -23,6 +23,8 @@ const DEFAULT_EVENTS_FILE = path.join(DEFAULT_EVENTS_DIR, 'events.jsonl');
  * @param {number} [opts.taskTotal] - Total tasks in plan
  * @param {string} [opts.status]    - Status string
  * @param {string} [opts.detail]    - Freeform detail
+ * @param {string} [opts.parent]    - Parent agent name (for spawned events)
+ * @param {Array}  [opts.todos]     - Todo list array [{id, title, status}]
  * @param {string} [opts.eventsFile] - Override path to events file
  */
 function logAgentEvent(opts) {
@@ -46,6 +48,8 @@ function logAgentEvent(opts) {
   if (opts.taskTotal !== undefined) entry.taskTotal = opts.taskTotal;
   if (opts.status !== undefined) entry.status = opts.status;
   if (opts.detail !== undefined) entry.detail = opts.detail;
+  if (opts.parent !== undefined) entry.parent = opts.parent;
+  if (opts.todos !== undefined) entry.todos = opts.todos;
   if (opts.phase !== undefined) entry.phase = opts.phase;
   if (opts.workstream !== undefined) entry.workstream = opts.workstream;
 
