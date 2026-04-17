@@ -28,3 +28,32 @@
   - Node height must be tracked per-node (via `pos.h`) for correct edge `y1` calculations when heights vary
   - `renderSummary` signature change required updating the `refresh()` call to pass extra args
 - **Status**: done
+
+## 2026-04-17 00:25:31 — Session Summary
+- **Architecture/Plan Reference**: `.plans/2026-04-17-002044-architecture-dashboard-bugfixes.md`
+- **Branch**: `fix/frontend/dashboard-bugfixes`
+- **Commit**: `5b37049`
+- **Approved Execution Plan**:
+  1. Guard `session-start` in `state.js` — only reset if agent is 'architect'
+  2. Update `planPath` on `plan-saved` — always overwrite, not just first time
+  3. Guard `handleSessionStart` in `server.js` — only architect triggers file truncation + SSE reset
+  4. Add 3 new tests to `state.test.js` — non-architect ignored, architect resets, planPath updates
+  5. Clean up corrupted `.agent-events/events.jsonl`
+  6. Run ALL dashboard tests — 0 failures
+- **Tasks Completed**:
+  - Task 1: Added `evt.agent !== 'architect'` early-return guard in `state.js processEvent()`
+  - Task 2: Changed `if (!this.planPath) this.planPath = evt.plan` to unconditional `this.planPath = evt.plan`
+  - Task 3: Added `&& evt.agent === 'architect'` to both `fs.watch` and `setInterval` session-start checks in `server.js`
+  - Task 4: Added 3 tests: non-architect session-start ignored, architect session-start resets, planPath updates on plan-saved
+  - Task 5: Truncated `.agent-events/events.jsonl` to empty
+  - Task 6: All 45 tests pass (0 failures)
+- **Files Changed**: `dashboard/lib/state.js`, `dashboard/server.js`, `dashboard/test/state.test.js`, `README.md`
+- **Fixes Applied**:
+  - Bug 1: Ghost nodes + data wipes from rogue session-start — guarded to architect-only
+  - Bug 2: Stale plan link — planPath now always updates on plan-saved
+  - Bug 3: Sub-agents disappearing — prevented by Bug 1 fix (no more rogue resets)
+- **Subagents Invoked**: None — implemented directly (cannot invoke subagents from this context)
+- **Lessons Learned**:
+  - `server.js` has two code paths for event processing (fs.watch + setInterval fallback) — both must be updated in sync
+  - The `if (!this.planPath)` pattern was wrong for planPath because it prevented updates after the first value was set
+- **Status**: done
