@@ -64,6 +64,19 @@ Use this format for each entry:
 
 Before starting work, READ your memory log to review prior sessions and check for recurring issues.
 
+## Agent Monitor Events (MANDATORY)
+You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
+
+**Session start**: `node dashboard/lib/emit-event.js code-reviewer spawned --parent "<lead-agent>"`
+**When starting a review**: `node dashboard/lib/emit-event.js code-reviewer task-started --task "Reviewing <branch>"`
+**When reasoning/analyzing**: `node dashboard/lib/emit-event.js code-reviewer thinking --detail "<brief one-line summary of current reasoning>"`
+**When review is complete**: `node dashboard/lib/emit-event.js code-reviewer task-completed --task "Review complete"`
+**Session end**: `node dashboard/lib/emit-event.js code-reviewer session-complete --status done`
+
+Replace `<lead-agent>` with the name of the lead who delegated to you (e.g., `backend-lead`, `frontend-lead`, `infra-lead`).
+
+If `dashboard/` does not exist in the project, skip this.
+
 ## Output Format — Mandatory Completion Report
 
 You MUST return this exact structured report when done. The lead agent will read and verify the "Verdict" and "Log Written" fields.
