@@ -173,4 +173,32 @@ describe('SessionState', () => {
     state.processEvent({ event: 'spawned' });
     assert.equal(state.getState().eventCount, 0);
   });
+
+  it('should ignore session-start from non-architect agent', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned' });
+    state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'infra-lead', event: 'session-start', plan: '.plans/rogue.md' });
+    const s = state.getState();
+    assert.ok(s.agents.dev, 'dev agent should still exist after non-architect session-start');
+    assert.ok(s.eventCount > 1, 'events should not have been wiped');
+  });
+
+  it('should reset on session-start from architect', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned' });
+    state.processEvent({ ts: '2026-01-01T01:00:00Z', agent: 'architect', event: 'session-start', plan: '.plans/new.md' });
+    const s = state.getState();
+    assert.equal(s.agents.dev, undefined, 'dev agent should be gone after architect session-start');
+    assert.ok(s.agents.architect, 'architect agent should exist');
+    assert.equal(s.planPath, '.plans/new.md');
+    assert.equal(s.eventCount, 1);
+  });
+
+  it('should update planPath on plan-saved event', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'arch', event: 'plan-saved', plan: '.plans/old.md' });
+    assert.equal(state.getState().planPath, '.plans/old.md');
+    state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'arch', event: 'plan-saved', plan: '.plans/new.md' });
+    assert.equal(state.getState().planPath, '.plans/new.md');
+  });
 });
