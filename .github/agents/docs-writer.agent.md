@@ -29,7 +29,7 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 Before writing any documentation, confirm you have read the plan reference and the implementation code.
 
 ## Approach
-1. **Read the Delegation Payload** and the referenced `.plans/` file for context
+1. **Read the Delegation Payload** and the referenced `.plans/project/` file for context
 2. Read the code to understand what it does
 3. Read existing docs to match the project's documentation style
 4. Write documentation that is:
@@ -44,7 +44,7 @@ Before writing any documentation, confirm you have read the plan reference and t
    - New dependencies
    - Updated usage instructions
 6. Place detailed docs in `docs/` for larger documentation needs
-7. Write your session log to `.agent-logs/docs-writer-log.md`
+7. Write your session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
 8. Return the **Completion Report** (see Output Format below)
 
 ## Constraints
@@ -54,7 +54,17 @@ Before writing any documentation, confirm you have read the plan reference and t
 - INCLUDE practical code examples, not just descriptions
 
 ## Agent Memory Log
-At the END of every session, you MUST update your memory log file at `.agent-logs/docs-writer-log.md`.
+
+Agent logs are separated by context:
+- **`.agent-logs/project/`** — logs from project feature work (default)
+- **`.agent-logs/template/`** — logs from template infrastructure work
+
+Determine which context applies based on the plan reference in your delegation payload:
+- Plan in `.plans/project/` → write to `.agent-logs/project/docs-writer-log.md`
+- Plan in `.plans/template/` → write to `.agent-logs/template/docs-writer-log.md`
+- Default to `.agent-logs/project/docs-writer-log.md` when unsure
+
+At the END of every session, you MUST update your memory log file in the appropriate directory.
 If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Capture the latest commit ID by running `git rev-parse --short HEAD`.
 Get the current date-time by running a command (e.g., `date` or equivalent).
@@ -99,7 +109,7 @@ You MUST return this exact structured report when done. The lead agent will read
 - **Plan Reference**: <path to .plans/ file>
 - **Files Changed**: <list of documentation files created/modified>
 - **Summary**: <what was added or updated>
-- **Log Written**: yes (to .agent-logs/docs-writer-log.md)
+- **Log Written**: yes (to .agent-logs/<project|template>/docs-writer-log.md)
 - **Status**: done
 ```
 

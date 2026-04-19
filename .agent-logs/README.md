@@ -7,6 +7,30 @@ and lessons learned.
 > **Team leads log their approved execution details here**, not in `.plans/`.
 > Only `@architect` writes to `.plans/`. All other agents write session logs here.
 
+## Directory Structure
+
+Logs are separated into two subdirectories:
+
+```
+.agent-logs/
+├── README.md              ← this file
+├── template/              ← logs from template infrastructure work (synced from upstream)
+│   └── <agent>-log.md
+└── project/               ← logs from project feature work (protected from upstream sync)
+    └── <agent>-log.md
+```
+
+| Directory | Purpose | Synced from upstream? | Protected by `merge=ours`? |
+|-----------|---------|----------------------|---------------------------|
+| `template/` | Logs from agents working on the template itself (dashboard, agents, protocols) | **Yes** — updated when you run `sync-template` | No |
+| `project/` | Logs from agents working on the project built with this template | **No** — never overwritten by template sync | **Yes** |
+
+### Which directory to use?
+
+- If you are working on a **project feature** (architecture from `.plans/project/`) → write to `.agent-logs/project/`
+- If you are working on **template infrastructure** (plans from `.plans/template/`) → write to `.agent-logs/template/`
+- Default to `.agent-logs/project/` when unsure
+
 ## Log Ordering
 
 Entries are ordered **oldest on top, newest at bottom** (chronological append-only).
@@ -25,8 +49,11 @@ Each entry includes:
 
 ## Files
 
+Each subdirectory (`template/` or `project/`) contains the same set of agent log files:
+
 | File | Agent |
 |------|-------|
+| `architect-log.md` | Architect |
 | `backend-lead-log.md` | Backend Team Lead |
 | `frontend-lead-log.md` | Frontend Team Lead |
 | `infra-lead-log.md` | Infrastructure Team Lead |

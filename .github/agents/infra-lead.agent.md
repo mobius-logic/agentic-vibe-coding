@@ -97,7 +97,7 @@ Before committing, verify every item:
 
 #### GATE 7: Commit & Report
 30. Commit all changes with descriptive message: `<type>(infra): <description>`
-31. Write your own session log to `.agent-logs/infra-lead-log.md`
+31. Write your own session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
 32. Emit dashboard event: `session-complete --status done`
 33. Report to human with full summary including all subagent reports
 
@@ -117,7 +117,17 @@ Every time you invoke a subagent, you MUST pass this structured context:
 ```
 
 ## Agent Memory Log
-At the END of every session, you MUST update your memory log file at `.agent-logs/infra-lead-log.md`.
+
+Agent logs are separated by context:
+- **`.agent-logs/project/`** — logs from project feature work (default)
+- **`.agent-logs/template/`** — logs from template infrastructure work
+
+Determine which context applies based on the plan reference in your delegation payload:
+- Plan in `.plans/project/` → write to `.agent-logs/project/infra-lead-log.md`
+- Plan in `.plans/template/` → write to `.agent-logs/template/infra-lead-log.md`
+- Default to `.agent-logs/project/infra-lead-log.md` when unsure
+
+At the END of every session, you MUST update your memory log file in the appropriate directory.
 If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Capture the latest commit ID by running `git rev-parse --short HEAD`.
 Get the current date-time by running a command (e.g., `date` or equivalent).

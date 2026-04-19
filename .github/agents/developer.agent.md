@@ -27,13 +27,13 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 Before writing any code, confirm you have read the plan reference and understand the acceptance criteria.
 
 ## Approach
-1. Read the **Delegation Payload** and the referenced `.plans/` file
+1. Read the **Delegation Payload** and the referenced `.plans/project/` file
 2. Search the codebase for related files and existing patterns
 3. Read relevant files to understand the current architecture
 4. Write code following existing conventions
 5. Run linting or type-checking if available
 6. Verify the code works by running it if possible
-7. Write your session log to `.agent-logs/developer-log.md`
+7. Write your session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
 8. Return the **Completion Report** (see Output Format below)
 
 ## Constraints
@@ -45,7 +45,17 @@ Before writing any code, confirm you have read the plan reference and understand
 - WRITE clean, readable code with meaningful names
 
 ## Agent Memory Log
-At the END of every session, you MUST update your memory log file at `.agent-logs/developer-log.md`.
+
+Agent logs are separated by context:
+- **`.agent-logs/project/`** — logs from project feature work (default)
+- **`.agent-logs/template/`** — logs from template infrastructure work
+
+Determine which context applies based on the plan reference in your delegation payload:
+- Plan in `.plans/project/` → write to `.agent-logs/project/developer-log.md`
+- Plan in `.plans/template/` → write to `.agent-logs/template/developer-log.md`
+- Default to `.agent-logs/project/developer-log.md` when unsure
+
+At the END of every session, you MUST update your memory log file in the appropriate directory.
 If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Capture the latest commit ID by running `git rev-parse --short HEAD`.
 Get the current date-time by running a command (e.g., `date` or equivalent).
@@ -93,7 +103,7 @@ You MUST return this exact structured report when done. The lead agent will read
 - **Key Decisions**: <any non-obvious choices made and why>
 - **Concerns**: <any issues encountered or risks>
 - **Suggested Tests**: <what the tester should verify — be specific>
-- **Log Written**: yes (to .agent-logs/developer-log.md)
+- **Log Written**: yes (to .agent-logs/<project|template>/developer-log.md)
 - **Status**: done | blocked
 ```
 

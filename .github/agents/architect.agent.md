@@ -39,7 +39,7 @@ Before doing ANYTHING else, you MUST refresh your memory by reading all existing
    - **Exact match**: An architecture plan for this feature already exists → inform the human and ask if they want to reuse it as-is (creating a new instance) or modify it
    - **Partial match**: A related plan exists → reference it during design to maintain consistency
    - **No match**: Proceed to discovery as normal
-5. **Read your memory log** at `.agent-logs/architect-log.md` (if it exists) to review prior session summaries
+5. **Read your memory log** at `.agent-logs/project/architect-log.md` and `.agent-logs/template/architect-log.md` (if they exist) to review prior session summaries
 
 **If an exact plan match is found**, skip Phases 1-3 and jump directly to Phase 4 (Execution Mode) with the existing architecture, unless the human requests changes. This is the core reproducibility mechanism — the same plan produces the same delegation commands every time.
 
@@ -447,7 +447,17 @@ If the human prefers **manual delegation**:
   - **Constrained parallel**: Same as parallel but respecting the slot limit per wave
 
 ## Agent Memory Log
-At the END of every session, you MUST update your memory log file at `.agent-logs/architect-log.md`.
+
+Agent logs are separated by context:
+- **`.agent-logs/project/`** — logs from project feature work (default)
+- **`.agent-logs/template/`** — logs from template infrastructure work
+
+Determine which context applies:
+- If the work relates to a plan in `.plans/project/` → write to `.agent-logs/project/architect-log.md`
+- If the work relates to a plan in `.plans/template/` → write to `.agent-logs/template/architect-log.md`
+- Default to `.agent-logs/project/architect-log.md` when unsure
+
+At the END of every session, you MUST update your memory log file in the appropriate directory.
 If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Get the current date-time by running a command (e.g., `date` or equivalent).
 

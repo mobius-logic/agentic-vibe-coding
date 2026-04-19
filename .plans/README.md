@@ -3,7 +3,7 @@
 This directory stores **approved architecture and plan documents** created exclusively by the `@architect` agent after human approval.
 
 > **Only `@architect` may create or edit files in this directory.** Team leads and all other agents
-> treat `.plans/` as **read-only**. Team leads log their execution details in `.agent-logs/` instead.
+> treat `.plans/` as **read-only**. Team leads log their execution details in `.agent-logs/project/` (or `.agent-logs/template/`) instead.
 
 ## Directory Structure
 
@@ -55,7 +55,7 @@ Examples:
 
 ## How Plans Are Referenced
 
-- Agent memory logs in `.agent-logs/` include a **Plan** field linking to the relevant plan file
+- Agent memory logs in `.agent-logs/<project|template>/` include a **Plan** field linking to the relevant plan file
 - When communicating with agents about ongoing work, share the plan file path for context
 - Plans are never modified after approval — they serve as an immutable record
 

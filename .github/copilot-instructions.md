@@ -52,7 +52,7 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - **`.plans/project/`** contains plans for the project built with this template — protected from upstream sync via `merge=ours`
 - Team leads MUST read the relevant `.plans/project/` file (architecture + launch plan) to understand context and their execution mode before executing
 - Team leads MUST present execution plans to the human user for approval before starting work
-- Team leads log their approved execution details and session summaries in `.agent-logs/`, NOT in `.plans/`
+- Team leads log their approved execution details and session summaries in `.agent-logs/project/` (or `.agent-logs/template/` for template work), NOT in `.plans/`
 - Approved plans, architecture documents, and launch plans are saved to `.plans/project/` with date-timestamped filenames
 - All agents must reference the relevant plan/architecture/launch plan files in their work and logs
 - Workstream briefs include an Execution Context block (mode, wave, parallel peers, prerequisites, sync points)
@@ -70,7 +70,7 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - `TEMPLATE-GUIDE.md` contains template usage instructions — do not overwrite
 - Architecture documents in `.plans/project/` serve as canonical design references
 - **Only `@architect` may create or edit files in `.plans/`** — team leads and all other agents treat `.plans/` as read-only
-- Agent logs in `.agent-logs/` must include plan references and full timestamps
+- Agent logs in `.agent-logs/project/` (or `.agent-logs/template/`) must include plan references and full timestamps
 
 ## Agent Monitor Dashboard
 - An optional web-based dashboard is available at `dashboard/`
@@ -114,7 +114,7 @@ All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Ga
 - If `@tester` reports failures → loop back to `@developer`, then re-test
 - If `@code-reviewer` requests changes → loop back to `@developer`, re-test, re-review
 - NEVER skip `@tester`, `@code-reviewer`, or `@docs-writer` — all three are mandatory
-- All agents MUST write session logs to `.agent-logs/` and emit dashboard events
+- All agents MUST write session logs to `.agent-logs/project/` (or `.agent-logs/template/`) and emit dashboard events
 
 ## Collaboration
 - Each workstream operates on its own feature branch

@@ -14,7 +14,7 @@ This directory contains plans for the **project** built using the agentic-vibe-c
 ## What Does NOT Belong Here
 
 - Template infrastructure plans → those live in `.plans/template/`
-- Agent logs or execution details → those go in `.agent-logs/`
+- Agent logs or execution details → those go in `.agent-logs/project/`
 
 ## Naming Convention
 

@@ -13,7 +13,7 @@
 
 # ── Project-specific paths (never overwritten by template updates) ──────────
 .plans/project/**    merge=ours
-.agent-logs/**       merge=ours
+.agent-logs/project/**  merge=ours
 .agent-events/**     merge=ours
 README.md            merge=ours
 

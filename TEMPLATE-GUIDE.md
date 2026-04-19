@@ -134,7 +134,7 @@ For smaller features or when you already know the architecture, you can go direc
 - All approved architectures and plans live in `.plans/project/` with date-timestamps
 - Template plans (agent protocols, dashboard features) live in `.plans/template/`
 - **Only `@architect` creates or edits files in `.plans/`** — all other agents treat `.plans/` as read-only
-- Team leads log their approved execution details and session summaries in `.agent-logs/`
+- Team leads log their approved execution details and session summaries in `.agent-logs/project/` (or `.agent-logs/template/` for template work)
 - Architecture documents are prefixed with `architecture-` for easy identification
 - Agent logs reference which plan/architecture they worked on
 - You can share plan file paths when communicating with agents across sessions
@@ -153,6 +153,8 @@ For smaller features or when you already know the architecture, you can go direc
 .devcontainer/
 └── devcontainer.json # Codespaces environment
 .agent-logs/          # Agent session logs (auto-generated)
+├── template/         # Template infrastructure logs (synced from upstream)
+└── project/          # Project-specific logs (protected from upstream sync)
 .agent-events/        # Structured agent event logs (JSONL, auto-generated)
 .plans/               # Approved plan documents (auto-generated)
 ├── template/         # Template infrastructure plans (synced from upstream)
@@ -276,13 +278,13 @@ The Launch Plan's "Sequential Fallback Order" section gives you the exact sequen
 | Agent made a mistake | Tell it what's wrong in the same chat session |
 | Tests fail | Tell the agent "tests are failing, fix them" |
 | Agent asks a question | Answer it — you're the product owner |
-| Need to reference prior work | Check `.plans/project/` for architecture docs and approved plans, `.agent-logs/` for session logs |
+| Need to reference prior work | Check `.plans/project/` for architecture docs and approved plans, `.agent-logs/project/` for session logs |
 | Merge conflict | `git fetch origin && git rebase origin/main` on the conflicting branch |
-| Agent's work log is wrong | Check `.agent-logs/` for the agent's memory file |
+| Agent's work log is wrong | Check `.agent-logs/project/` (or `.agent-logs/template/`) for the agent's memory file |
 
 ## Agent Memory Logs
 
-Each agent writes a dated summary log to `.agent-logs/<agent-name>-log.md` tracking:
+Each agent writes a dated summary log to `.agent-logs/<project|template>/<agent-name>-log.md` tracking:
 - Plan reference (which `.plans/project/` file they worked on)
 - Tasks completed with timestamps
 - Files created/modified
@@ -341,7 +343,7 @@ The dashboard opens at **http://127.0.0.1:4820** and auto-refreshes every 3 seco
 
 The dashboard reads data from three sources — all already part of the template:
 
-1. **`.agent-logs/*.md`** — Human-readable session logs (existing)
+1. **`.agent-logs/**/*.md`** — Human-readable session logs (existing, now in template/ and project/ subdirs)
 2. **`.plans/**/*.md`** — Approved plan documents (existing, now in template/ and project/ subdirs)
 3. **Git branches** — Local and remote branch data (existing)
 4. **`.agent-events/events.jsonl`** — Structured machine-readable events (new, optional)
@@ -449,12 +451,13 @@ overwriting their project-specific plans, logs, or documentation.
 | What syncs (from template) | What is protected (project-specific) |
 |---|---|
 | `.github/agents/` | `.plans/project/` |
-| `.github/hooks/` | `.agent-logs/` |
+| `.github/hooks/` | `.agent-logs/project/` |
 | `.github/prompts/` | `.agent-events/` |
 | `.github/instructions/` | `README.md` |
 | `.github/copilot-instructions.md` | All project source code |
 | `.devcontainer/` | |
 | `.plans/template/` | |
+| `.agent-logs/template/` | |
 | `dashboard/` | |
 | `TEMPLATE-GUIDE.md` | |
 | `scripts/` | |
@@ -505,7 +508,7 @@ The sync script:
 1. Adds or verifies the `upstream` remote
 2. Configures the `ours` merge driver to protect project-specific files
 3. Fetches and merges the latest template changes
-4. Leaves `.plans/project/`, `.agent-logs/`, and `README.md` untouched (template plans in `.plans/template/` ARE updated)
+4. Leaves `.plans/project/`, `.agent-logs/project/`, and `README.md` untouched (template plans and logs in `.plans/template/` and `.agent-logs/template/` ARE updated)
 
 > **Codespace note:** Both scripts auto-detect GitHub Codespaces and verify
 > access to the upstream template repo before fetching. The default Codespace
@@ -536,9 +539,9 @@ are automatically protected.
 The `.gitattributes` file uses Git's merge driver system:
 
 ```gitattributes
-.plans/project/**  merge=ours
-.agent-logs/**     merge=ours
-README.md          merge=ours
+.plans/project/**        merge=ours
+.agent-logs/project/**   merge=ours
+README.md                merge=ours
 ```
 
 When `merge=ours` is configured (`git config merge.ours.driver true` — the sync scripts

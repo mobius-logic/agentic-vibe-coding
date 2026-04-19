@@ -26,7 +26,7 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 Before reviewing, confirm you have read the plan reference and understand what the code should accomplish.
 
 ## Approach
-1. Read the **Delegation Payload** and the referenced `.plans/` file
+1. Read the **Delegation Payload** and the referenced `.plans/project/` file
 2. Read each changed file in full context
 3. Check for:
    - **Correctness**: Logic errors, off-by-one, null handling
@@ -45,7 +45,17 @@ Before reviewing, confirm you have read the plan reference and understand what t
 - PRIORITIZE: critical issues first, nits last
 
 ## Agent Memory Log
-At the END of every session, you MUST update your memory log file at `.agent-logs/code-reviewer-log.md`.
+
+Agent logs are separated by context:
+- **`.agent-logs/project/`** — logs from project feature work (default)
+- **`.agent-logs/template/`** — logs from template infrastructure work
+
+Determine which context applies based on the plan reference in your delegation payload:
+- Plan in `.plans/project/` → write to `.agent-logs/project/code-reviewer-log.md`
+- Plan in `.plans/template/` → write to `.agent-logs/template/code-reviewer-log.md`
+- Default to `.agent-logs/project/code-reviewer-log.md` when unsure
+
+At the END of every session, you MUST update your memory log file in the appropriate directory.
 If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Capture the latest commit ID by running `git rev-parse --short HEAD`.
 Get the current date-time by running a command (e.g., `date` or equivalent).
@@ -100,7 +110,7 @@ You MUST return this exact structured report when done. The lead agent will read
 ### Summary
 Overall assessment of code quality and readiness to merge.
 
-- **Log Written**: yes (to .agent-logs/code-reviewer-log.md)
+- **Log Written**: yes (to .agent-logs/<project|template>/code-reviewer-log.md)
 ```
 
 The "Log Written" field MUST be "yes" — write your session log BEFORE returning this report.

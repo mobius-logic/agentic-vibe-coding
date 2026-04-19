@@ -37,7 +37,7 @@ Before writing any tests, confirm you have read the plan reference and the imple
    - Error cases (invalid inputs, failure scenarios)
    - Integration points (API contracts, database interactions)
 5. Run the test suite: use the project's test command
-6. Write your session log to `.agent-logs/tester-log.md`
+6. Write your session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
 7. Return the **Completion Report** (see Output Format below)
 
 ## Constraints
@@ -48,7 +48,17 @@ Before writing any tests, confirm you have read the plan reference and the imple
 - WRITE descriptive test names that explain the scenario
 
 ## Agent Memory Log
-At the END of every session, you MUST update your memory log file at `.agent-logs/tester-log.md`.
+
+Agent logs are separated by context:
+- **`.agent-logs/project/`** — logs from project feature work (default)
+- **`.agent-logs/template/`** — logs from template infrastructure work
+
+Determine which context applies based on the plan reference in your delegation payload:
+- Plan in `.plans/project/` → write to `.agent-logs/project/tester-log.md`
+- Plan in `.plans/template/` → write to `.agent-logs/template/tester-log.md`
+- Default to `.agent-logs/project/tester-log.md` when unsure
+
+At the END of every session, you MUST update your memory log file in the appropriate directory.
 If the file does not exist, create it. **Always append new entries at the bottom** of the file (oldest entries on top, newest at bottom). Never overwrite or reorder previous entries.
 Capture the latest commit ID by running `git rev-parse --short HEAD`.
 Get the current date-time by running a command (e.g., `date` or equivalent).
@@ -96,7 +106,7 @@ You MUST return this exact structured report when done. The lead agent will read
 - **Tests**: <total> total, <pass> passing, <fail> failing
 - **Coverage Areas**: <list of areas covered>
 - **Failing Tests**: <details if any, or "None">
-- **Log Written**: yes (to .agent-logs/tester-log.md)
+- **Log Written**: yes (to .agent-logs/<project|template>/tester-log.md)
 - **Verdict**: ALL PASS | FAILURES FOUND
 ```
 

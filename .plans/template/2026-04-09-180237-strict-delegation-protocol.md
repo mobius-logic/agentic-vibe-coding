@@ -67,13 +67,13 @@ GATE 6: PRE-COMMIT CHECKLIST (mandatory — all must be TRUE)
   └─ [ ] All tests pass via @tester
   └─ [ ] Code review approved via @code-reviewer
   └─ [ ] Documentation updated via @docs-writer
-  └─ [ ] All subagent logs written to .agent-logs/
+  └─ [ ] All subagent logs written to .agent-logs/<project|template>/
   └─ [ ] All dashboard events emitted
   └─ ✅ Gate condition: ALL checkboxes TRUE
 
 GATE 7: COMMIT & REPORT
   └─ Lead commits with descriptive message
-  └─ Lead writes own session log to .agent-logs/
+  └─ Lead writes own session log to .agent-logs/<project|template>/
   └─ Lead emits: session-complete event
   └─ Lead reports to human with full summary
 ```
@@ -105,7 +105,7 @@ Every subagent MUST return a structured report when done:
 - **Files Changed**: <list>
 - **Key Decisions**: <any non-obvious choices>
 - **Suggested Tests**: <what the tester should verify>
-- **Log Written**: yes/no (to .agent-logs/developer-log.md)
+- **Log Written**: yes/no (to .agent-logs/<project|template>/developer-log.md)
 - **Status**: done | blocked
 ```
 
@@ -118,7 +118,7 @@ Every subagent MUST return a structured report when done:
 - **Tests**: <total> total, <pass> passing, <fail> failing
 - **Coverage Areas**: <list>
 - **Failing Tests**: <details if any>
-- **Log Written**: yes/no (to .agent-logs/tester-log.md)
+- **Log Written**: yes/no (to .agent-logs/<project|template>/tester-log.md)
 - **Verdict**: ALL PASS | FAILURES FOUND
 ```
 
@@ -130,7 +130,7 @@ Every subagent MUST return a structured report when done:
 - **Critical Issues**: <count and list>
 - **Warnings**: <count and list>
 - **Suggestions**: <count and list>
-- **Log Written**: yes/no (to .agent-logs/code-reviewer-log.md)
+- **Log Written**: yes/no (to .agent-logs/<project|template>/code-reviewer-log.md)
 ```
 
 **Docs-Writer report**:
@@ -140,7 +140,7 @@ Every subagent MUST return a structured report when done:
 - **Branch**: <branch name>
 - **Files Changed**: <list>
 - **Summary**: <what was added/updated>
-- **Log Written**: yes/no (to .agent-logs/docs-writer-log.md)
+- **Log Written**: yes/no (to .agent-logs/<project|template>/docs-writer-log.md)
 - **Status**: done
 ```
 
