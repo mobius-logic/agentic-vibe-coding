@@ -7,7 +7,7 @@ argument-hint: "Branch name to review"
 You are a review orchestrator. The user will specify a branch to review.
 
 Your job:
-1. **Verify the team lead followed the 7-Gate protocol** from `.plans/2026-04-09-180237-strict-delegation-protocol.md`:
+1. **Verify the team lead followed the 7-Gate protocol** from `.plans/template/2026-04-09-180237-strict-delegation-protocol.md`:
    - Check `.agent-logs/` for the lead's session log confirming all gates were passed
    - Verify `@tester`, `@code-reviewer`, and `@docs-writer` logs exist for this branch
    - If any gate was skipped, report it and halt the review

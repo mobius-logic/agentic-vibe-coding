@@ -12,7 +12,7 @@
 # handle this automatically.
 
 # ── Project-specific paths (never overwritten by template updates) ──────────
-.plans/**            merge=ours
+.plans/project/**    merge=ours
 .agent-logs/**       merge=ours
 .agent-events/**     merge=ours
 README.md            merge=ours

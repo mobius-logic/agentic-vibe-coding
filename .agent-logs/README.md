@@ -16,7 +16,7 @@ Agents must never overwrite, delete, or reorder previous entries.
 
 Each entry includes:
 - **Timestamp**: Full `YYYY-MM-DD HH:MM:SS` date-time
-- **Plan reference**: Path to the `.plans/` file being worked on (or "N/A")
+- **Plan reference**: Path to the `.plans/project/` file being worked on (or "N/A")
 - **Branch**: The git branch
 - **Commit**: Short commit hash
 - **Tasks/files/fixes**: What was done

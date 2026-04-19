@@ -4,7 +4,7 @@
 
 This project uses a multi-agent workflow. **All non-trivial changes MUST go through the proper agent workflow.** If you are a Copilot agent (including the default agent mode) receiving a request to implement features, fix bugs, refactor code, or make architectural changes:
 
-1. **Check `.plans/` for an approved plan** that covers the requested change. If one exists, follow it.
+1. **Check `.plans/project/` for an approved plan** that covers the requested change. If one exists, follow it.
 2. **If no approved plan exists**, do NOT proceed with implementation. Instead:
    - Inform the user that this project requires changes to be routed through `@architect` first for design/planning, or through the appropriate team lead (`@backend-lead`, `@frontend-lead`, `@infra-lead`) for scoped feature work.
    - Suggest: _"This project follows an architect-first workflow. Please invoke `@architect` to design this change, or `@<lead>` to plan and delegate it — so the work is properly planned, tracked, and logged."_
@@ -44,13 +44,16 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 
 ## Planning Workflow
 - For new projects, start with `@architect` to design the system architecture before tasking leads
+- The architect reads all existing plans in `.plans/project/` first to refresh context and check for plan matches
 - The architect iteratively interviews the human, produces architecture documents, determines the execution mode (local sequential vs Codespaces parallel), and decomposes into mode-aware workstream briefs
-- After architecture approval, the architect produces a **Launch Plan** (saved to `.plans/`) that specifies execution waves, Codespace counts, and sync points
+- After architecture approval, the architect produces a **Launch Plan** (saved to `.plans/project/`) that specifies execution waves, Codespace counts, sync points, and complete delegation payloads for reproducibility
 - **Only `@architect` may create or edit files in `.plans/`** — team leads and all other agents treat `.plans/` as read-only
-- Team leads MUST read the relevant `.plans/` file (architecture + launch plan) to understand context and their execution mode before executing
+- **`.plans/template/`** contains plans for the template itself — synced from upstream, not project-specific
+- **`.plans/project/`** contains plans for the project built with this template — protected from upstream sync via `merge=ours`
+- Team leads MUST read the relevant `.plans/project/` file (architecture + launch plan) to understand context and their execution mode before executing
 - Team leads MUST present execution plans to the human user for approval before starting work
 - Team leads log their approved execution details and session summaries in `.agent-logs/`, NOT in `.plans/`
-- Approved plans, architecture documents, and launch plans are saved to `.plans/` with date-timestamped filenames
+- Approved plans, architecture documents, and launch plans are saved to `.plans/project/` with date-timestamped filenames
 - All agents must reference the relevant plan/architecture/launch plan files in their work and logs
 - Workstream briefs include an Execution Context block (mode, wave, parallel peers, prerequisites, sync points)
 - Plans are immutable after approval — they serve as the source of truth
@@ -65,7 +68,7 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - Team leads MUST invoke @docs-writer after implementation to update project documentation
 - `README.md` contains project-specific documentation (features, setup, usage)
 - `TEMPLATE-GUIDE.md` contains template usage instructions — do not overwrite
-- Architecture documents in `.plans/` serve as canonical design references
+- Architecture documents in `.plans/project/` serve as canonical design references
 - **Only `@architect` may create or edit files in `.plans/`** — team leads and all other agents treat `.plans/` as read-only
 - Agent logs in `.agent-logs/` must include plan references and full timestamps
 
@@ -77,7 +80,7 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - The dashboard is purely additive — it does not affect existing agent behavior
 
 ## Strict Delegation Protocol (MANDATORY)
-**Protocol Reference**: `.plans/2026-04-09-180237-strict-delegation-protocol.md`
+**Protocol Reference**: `.plans/template/2026-04-09-180237-strict-delegation-protocol.md`
 
 All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.
 

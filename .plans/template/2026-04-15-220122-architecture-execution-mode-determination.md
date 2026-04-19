@@ -177,11 +177,11 @@ The Architect → Lead Handshake Payload gains two new fields:
 
 `markdown
 ## Architect Handshake
-- **Architecture Plan**: <path to .plans/ architecture file>
-- **Launch Plan**: <path to .plans/ launch plan file>          ← NEW
+- **Architecture Plan**: <path to .plans/project/ architecture file>
+- **Launch Plan**: <path to .plans/project/ launch plan file>          ← NEW
 - **Execution Mode**: <parallel | sequential | constrained>   ← NEW
 - **Workstream Brief**: <the full workstream task brief>
-- **Delegation Protocol**: .plans/2026-04-09-180237-strict-delegation-protocol.md
+- **Delegation Protocol**: .plans/template/2026-04-09-180237-strict-delegation-protocol.md
 - **Required Acknowledgment**: Lead MUST confirm:
   1. It has read the architecture plan
   2. It has read the delegation protocol

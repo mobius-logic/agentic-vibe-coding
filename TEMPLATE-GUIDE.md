@@ -94,7 +94,7 @@ For new projects, **start with `@architect`** rather than going directly to team
 The architect-first workflow ensures a coherent system design before any code is written.
 
 > **Important: `.plans/` is architect-only.** Only `@architect` creates or edits files in `.plans/`.
-> Team leads read plans from `.plans/` for context, but log their execution details in `.agent-logs/`.
+> Team leads read plans from `.plans/project/` for context, but log their execution details in `.agent-logs/`.
 > **Architect-first protocol:** All non-trivial changes must go through `@architect`
 > (for design/planning) or the appropriate team lead (for scoped work). If you prompt Copilot
 > directly without invoking an agent, it will remind you to route through the proper workflow.
@@ -106,7 +106,7 @@ The architect-first workflow ensures a coherent system design before any code is
 3. After each round, the architect summarizes what was learned and confirms with you
 4. The architect produces a **System Architecture Document** covering all layers (frontend, backend, data, infra)
 5. You **approve, revise, or reject** the architecture
-6. The approved architecture is saved to `.plans/<date>-<time>-architecture-<name>.md`
+6. The approved architecture is saved to `.plans/project/<date>-<time>-architecture-<name>.md`
 7. The architect **determines your execution mode** — asks whether you're using local VS Code (sequential) or GitHub Codespaces (parallel), analyzes workstream dependencies, and produces a **Launch Plan** with execution waves
 8. You **review and confirm the Launch Plan**
 9. The architect **decomposes the architecture into mode-aware workstream task briefs** — each brief includes execution context (wave, parallel peers, prerequisites, sync points)
@@ -119,7 +119,7 @@ The architect-first workflow ensures a coherent system design before any code is
 For smaller features or when you already know the architecture, you can go directly to team leads:
 
 1. You describe a feature to a team lead (e.g., `@backend-lead "Add JWT authentication"`)
-2. The lead reads the relevant `.plans/` file (if one exists) for architectural context
+2. The lead reads the relevant `.plans/project/` file (if one exists) for architectural context
 3. The lead analyzes the request and presents a **draft execution plan** with tasks, files, and branches
 4. The lead asks you to **approve, modify, or reject** the plan
 5. You iterate until the plan is right
@@ -131,7 +131,8 @@ For smaller features or when you already know the architecture, you can go direc
 8. After coding → testing → docs → review, the lead reports completion
 
 ### Referencing Plans and Architecture Documents
-- All approved architectures and plans live in `.plans/` with date-timestamps
+- All approved architectures and plans live in `.plans/project/` with date-timestamps
+- Template plans (agent protocols, dashboard features) live in `.plans/template/`
 - **Only `@architect` creates or edits files in `.plans/`** — all other agents treat `.plans/` as read-only
 - Team leads log their approved execution details and session summaries in `.agent-logs/`
 - Architecture documents are prefixed with `architecture-` for easy identification
@@ -154,6 +155,8 @@ For smaller features or when you already know the architecture, you can go direc
 .agent-logs/          # Agent session logs (auto-generated)
 .agent-events/        # Structured agent event logs (JSONL, auto-generated)
 .plans/               # Approved plan documents (auto-generated)
+├── template/         # Template infrastructure plans (synced from upstream)
+└── project/          # Project-specific plans (protected from upstream sync)
 dashboard/            # Agent Monitor Dashboard (web UI)
 scripts/
 ├── sync-template.sh  # Bash sync script (Linux/macOS/Codespaces)
@@ -273,14 +276,14 @@ The Launch Plan's "Sequential Fallback Order" section gives you the exact sequen
 | Agent made a mistake | Tell it what's wrong in the same chat session |
 | Tests fail | Tell the agent "tests are failing, fix them" |
 | Agent asks a question | Answer it — you're the product owner |
-| Need to reference prior work | Check `.plans/` for architecture docs and approved plans, `.agent-logs/` for session logs |
+| Need to reference prior work | Check `.plans/project/` for architecture docs and approved plans, `.agent-logs/` for session logs |
 | Merge conflict | `git fetch origin && git rebase origin/main` on the conflicting branch |
 | Agent's work log is wrong | Check `.agent-logs/` for the agent's memory file |
 
 ## Agent Memory Logs
 
 Each agent writes a dated summary log to `.agent-logs/<agent-name>-log.md` tracking:
-- Plan reference (which `.plans/` file they worked on)
+- Plan reference (which `.plans/project/` file they worked on)
 - Tasks completed with timestamps
 - Files created/modified
 - Fixes applied and lessons learned
@@ -294,12 +297,16 @@ Logs are ordered **oldest on top, newest at bottom**. They persist across sessio
 Approved plans are saved to `.plans/` with date-timestamped filenames:
 ```
 .plans/
-├── 2026-04-08-143022-jwt-auth.md
-├── 2026-04-09-091500-user-dashboard.md
+├── template/
+│   └── 2026-04-09-180237-strict-delegation-protocol.md
+├── project/
+│   ├── 2026-04-08-143022-architecture-task-app.md
+│   └── 2026-04-08-143022-launch-plan-task-app.md
 └── README.md
 ```
 
-These provide a traceable record of what was planned and approved, and are referenced by agents throughout execution.
+- **`template/`** contains plans for the template itself (synced from upstream)
+- **`project/`** contains project-specific plans (protected from upstream sync via `merge=ours`)
 
 ## Agent Monitor Dashboard
 
@@ -327,7 +334,7 @@ The dashboard opens at **http://127.0.0.1:4820** and auto-refreshes every 3 seco
 | **Summary Bar** | Active agent count, branch count, task completion, event count |
 | **Agent Cards** | Each agent with status (active/working/completed/idle), current branch, task progress bar |
 | **Branch Status** | All feature/fix branches with their status, last commit, and date |
-| **Plans** | Plans from `.plans/` with task completion progress |
+| **Plans** | Plans from `.plans/` (template + project) with task completion progress |
 | **Event Timeline** | Chronological feed of all agent events |
 
 ### How It Works
@@ -335,7 +342,7 @@ The dashboard opens at **http://127.0.0.1:4820** and auto-refreshes every 3 seco
 The dashboard reads data from three sources — all already part of the template:
 
 1. **`.agent-logs/*.md`** — Human-readable session logs (existing)
-2. **`.plans/*.md`** — Approved plan documents (existing)
+2. **`.plans/**/*.md`** — Approved plan documents (existing, now in template/ and project/ subdirs)
 3. **Git branches** — Local and remote branch data (existing)
 4. **`.agent-events/events.jsonl`** — Structured machine-readable events (new, optional)
 
@@ -351,7 +358,7 @@ Agents can optionally write structured events to `.agent-events/events.jsonl` (o
   "agent": "backend-lead",
   "event": "task-completed",
   "branch": "feature/backend/auth",
-  "plan": ".plans/2026-04-09-auth.md",
+  "plan": ".plans/project/2026-04-09-auth.md",
   "task": "Implement JWT middleware",
   "taskIndex": 1,
   "taskTotal": 5,
@@ -441,12 +448,13 @@ overwriting their project-specific plans, logs, or documentation.
 
 | What syncs (from template) | What is protected (project-specific) |
 |---|---|
-| `.github/agents/` | `.plans/` |
+| `.github/agents/` | `.plans/project/` |
 | `.github/hooks/` | `.agent-logs/` |
 | `.github/prompts/` | `.agent-events/` |
 | `.github/instructions/` | `README.md` |
 | `.github/copilot-instructions.md` | All project source code |
 | `.devcontainer/` | |
+| `.plans/template/` | |
 | `dashboard/` | |
 | `TEMPLATE-GUIDE.md` | |
 | `scripts/` | |
@@ -497,7 +505,7 @@ The sync script:
 1. Adds or verifies the `upstream` remote
 2. Configures the `ours` merge driver to protect project-specific files
 3. Fetches and merges the latest template changes
-4. Leaves `.plans/`, `.agent-logs/`, and `README.md` untouched
+4. Leaves `.plans/project/`, `.agent-logs/`, and `README.md` untouched (template plans in `.plans/template/` ARE updated)
 
 > **Codespace note:** Both scripts auto-detect GitHub Codespaces and verify
 > access to the upstream template repo before fetching. The default Codespace
@@ -528,9 +536,9 @@ are automatically protected.
 The `.gitattributes` file uses Git's merge driver system:
 
 ```gitattributes
-.plans/**        merge=ours
-.agent-logs/**   merge=ours
-README.md        merge=ours
+.plans/project/**  merge=ours
+.agent-logs/**     merge=ours
+README.md          merge=ours
 ```
 
 When `merge=ours` is configured (`git config merge.ours.driver true` — the sync scripts

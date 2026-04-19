@@ -75,18 +75,36 @@ function parsePlanFile(filePath) {
 }
 
 /**
- * Read all plans from .plans/ directory.
+ * Read all plans from a directory (non-recursive).
+ */
+function getPlansFromDir(dir) {
+  if (!fs.existsSync(dir)) return [];
+
+  return fs.readdirSync(dir)
+    .filter(f => f.endsWith('.md') && f !== 'README.md')
+    .sort()
+    .map(f => parsePlanFile(path.join(dir, f)))
+    .filter(Boolean);
+}
+
+/**
+ * Read all plans from .plans/ directory, including template/ and project/ subdirectories.
  */
 function getAllPlans(plansDir) {
   const dir = plansDir || PLANS_DIR;
 
   if (!fs.existsSync(dir)) return [];
 
-  const files = fs.readdirSync(dir)
-    .filter(f => f.endsWith('.md') && f !== 'README.md')
-    .sort();
+  // Read top-level plans (legacy/backward compatibility)
+  const topLevel = getPlansFromDir(dir);
 
-  return files.map(f => parsePlanFile(path.join(dir, f))).filter(Boolean);
+  // Read from template/ and project/ subdirectories
+  const templateDir = path.join(dir, 'template');
+  const projectDir = path.join(dir, 'project');
+  const templatePlans = getPlansFromDir(templateDir);
+  const projectPlans = getPlansFromDir(projectDir);
+
+  return [...topLevel, ...templatePlans, ...projectPlans];
 }
 
 module.exports = { parsePlanFile, getAllPlans };
