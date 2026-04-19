@@ -148,7 +148,17 @@ You MUST emit dashboard events at every key milestone so the human can track you
 
 **Session start** (run FIRST thing when you begin):
 ```
-node dashboard/lib/emit-event.js backend-lead spawned
+node dashboard/lib/emit-event.js backend-lead spawned --parent "architect"
+```
+
+**When reasoning/analyzing** (when planning execution, analyzing plan, preparing delegation):
+```
+node dashboard/lib/emit-event.js backend-lead thinking --detail "<brief one-line summary of current reasoning>"
+```
+
+**When updating task list** (after using manage_todo_list):
+```
+node dashboard/lib/emit-event.js backend-lead todo-update --todos '<JSON array of {id, title, status}>'
 ```
 
 **When you read/load a plan**:

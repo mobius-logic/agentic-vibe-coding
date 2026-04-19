@@ -79,6 +79,18 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - Agents may write structured events to `.agent-events/events.jsonl` using `dashboard/lib/log-event.js`
 - The dashboard is purely additive — it does not affect existing agent behavior
 
+### Dashboard v2 Event Types
+Agents emit events via `node dashboard/lib/emit-event.js <agent> <event> [options]`.
+
+| Event | Who | When | Example |
+|-------|-----|------|---------|
+| `session-start` | architect only | First command of new session | `...architect session-start --plan ".plans/file.md"` |
+| `spawned --parent` | all agents | When starting work | `...agent spawned --parent "parent-agent"` |
+| `thinking` | all agents | Major reasoning milestones | `...agent thinking --detail "Analyzing requirements"` |
+| `todo-update` | agents with task lists | After manage_todo_list | `...agent todo-update --todos '[{...}]'` |
+
+Note: `session-start` triggers a full dashboard data wipe. Only the architect should emit it.
+
 ## Strict Delegation Protocol (MANDATORY)
 **Protocol Reference**: `.plans/template/2026-04-09-180237-strict-delegation-protocol.md`
 

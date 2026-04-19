@@ -1,16 +1,21 @@
-// Agent Monitor Dashboard — Frontend Logic
-// Polls the dashboard API and renders live data.
+// dashboard/public/app.js
+// Main frontend: SSE client, state manager, rendering for Dashboard v2.
 
 'use strict';
 
-const API_BASE = '';
-const FAST_POLL = 3000;
-const SLOW_POLL = 10000;
+// ── State ──────────────────────────────────────────────
 
-let refreshTimer = null;
-let eventSource = null;
+const appState = {
+  agents: {},
+  graph: { nodes: [], edges: [] },
+  sessionStart: null,
+  planPath: null,
+  events: [],
+  selectedAgent: null,
+  eventsExpanded: false,
+};
 
-// ── Utility ────────────────────────────────────────────────
+// ── Utility ────────────────────────────────────────────
 
 function escapeHtml(text) {
   const div = document.createElement('div');
@@ -18,668 +23,448 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function formatTime(isoString) {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  } catch {
-    return isoString.slice(11, 19);
-  }
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  try {
-    const d = new Date(dateString);
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  } catch {
-    return dateString.slice(0, 10);
-  }
-}
-
-function timeAgo(isoString) {
-  if (!isoString) return '';
-  const diff = Date.now() - new Date(isoString).getTime();
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
+function formatDuration(startIso) {
+  if (!startIso) return '0s';
+  const ms = Date.now() - new Date(startIso).getTime();
+  const secs = Math.floor(ms / 1000);
+  if (secs < 60) return `${secs}s`;
   const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${mins}m ${secs % 60}s`;
   const hrs = Math.floor(mins / 60);
-  return `${hrs}h ago`;
+  return `${hrs}h ${mins % 60}m`;
 }
 
-function statusClass(status) {
-  switch (status) {
-    case 'active': return 'status-active';
-    case 'working': return 'status-working';
-    case 'completed': return 'status-completed';
-    case 'error': return 'status-error';
-    case 'merged': return 'status-merged';
-    default: return 'status-idle';
+function formatTime(isoString) {
+  if (!isoString) return '';
+  try {
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch {
+    return '';
   }
 }
 
 function agentIcon(name) {
   const icons = {
-    'architect': '🏗️',
-    'backend-lead': '⚙️',
-    'frontend-lead': '🎨',
-    'infra-lead': '🔧',
-    'developer': '💻',
-    'tester': '🧪',
-    'code-reviewer': '🔍',
-    'docs-writer': '📝',
+    'architect': '\u{1F3D7}\uFE0F',
+    'backend-lead': '\u2699\uFE0F',
+    'frontend-lead': '\u{1F3A8}',
+    'infra-lead': '\u{1F527}',
+    'developer': '\u{1F4BB}',
+    'tester': '\u{1F9EA}',
+    'code-reviewer': '\u{1F50D}',
+    'docs-writer': '\u{1F4DD}',
   };
-  return icons[name] || '🤖';
+  return icons[name] || '\u{1F916}';
 }
 
-function phaseIcon(phase) {
+function eventIcon(type) {
   const icons = {
-    'thinking': '💭',
-    'coding': '⌨️',
-    'searching': '🔍',
-    'reviewing': '📋',
-    'waiting': '⏳',
-    'delegating': '🔗',
+    'session-start': '\u{1F680}',
+    'spawned': '\u{1F7E2}',
+    'thinking': '\u{1F4AD}',
+    'todo-update': '\u{1F4CB}',
+    'task-started': '\u25B6\uFE0F',
+    'task-completed': '\u2705',
+    'branch-created': '\u{1F33F}',
+    'subagent-invoked': '\u{1F517}',
+    'question-asked': '\u2753',
+    'plan-loaded': '\u{1F4C4}',
+    'plan-saved': '\u{1F4C4}',
+    'session-complete': '\u{1F3C1}',
+    'error': '\u274C',
   };
-  return icons[phase] || '';
+  return icons[type] || '\u{1F4E1}';
 }
 
-function eventTypeLabel(type) {
-  const labels = {
-    'spawned': '🟢 spawned',
-    'plan-loaded': '📋 plan loaded',
-    'plan-saved': '📋 plan saved',
-    'task-started': '▶️ task started',
-    'task-completed': '✅ task done',
-    'branch-created': '🌿 branch created',
-    'branch-pushed': '📤 branch pushed',
-    'subagent-invoked': '🔗 subagent',
-    'question-asked': '❓ question',
-    'session-complete': '🏁 session done',
-    'heartbeat': '💓 heartbeat',
-    'error': '❌ error',
-  };
-  return labels[type] || type;
-}
+// ── SSE Connection ─────────────────────────────────────
 
-// ── API Calls ──────────────────────────────────────────────
-
-async function fetchJSON(endpoint) {
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-// ── Renderers ──────────────────────────────────────────────
-
-function renderSummary(data, graphData, agents) {
-  if (!data) return;
-
-  // C4: Show workstream count when >1
-  const wsCount = (graphData && graphData.workstreams) ? graphData.workstreams.length : 0;
-  const agentText = `${data.agents.active}/${data.agents.total}`;
-  document.getElementById('summary-agents').textContent =
-    wsCount > 1 ? `${agentText} · ${wsCount} ws` : agentText;
-
-  document.getElementById('summary-branches').textContent =
-    `${data.branches.total}`;
-  document.getElementById('summary-tasks').textContent =
-    data.tasks.total > 0 ? `${data.tasks.completed}/${data.tasks.total}` : '0';
-  document.getElementById('summary-events').textContent =
-    `${data.recentEventsCount}`;
-
-  // Activity indicator + B6: Last signal from heartbeats
-  const actEl = document.getElementById('summary-activity');
-  let lastSignal = '';
-  if (agents && agents.length > 0) {
-    let newest = null;
-    for (const a of agents) {
-      if (a.lastHeartbeat) {
-        const t = new Date(a.lastHeartbeat).getTime();
-        if (!newest || t > newest) newest = t;
-      }
-    }
-    if (newest) {
-      const secsAgo = Math.floor((Date.now() - newest) / 1000);
-      lastSignal = secsAgo < 60 ? `${secsAgo}s ago` : secsAgo < 3600 ? `${Math.floor(secsAgo / 60)}m ago` : `${Math.floor(secsAgo / 3600)}h ago`;
-    }
-  }
-
-  if (data.activity) {
-    const s = data.activity.status;
-    const label = s === 'very-active' ? 'Very Active' : s === 'active' ? 'Active' : s === 'light' ? 'Light' : 'Idle';
-    const signalHtml = lastSignal ? `<br><span style="font-size:10px;color:#9d9d9d">Signal: ${lastSignal}</span>` : '';
-    actEl.innerHTML = `<span class="activity-badge"><span class="activity-dot ${s}"></span> ${label}</span>${signalHtml}`;
-  } else {
-    actEl.textContent = lastSignal ? `Idle · ${lastSignal}` : 'Idle';
-  }
-}
-
-function renderAgents(agents, events) {
-  const grid = document.getElementById('agents-grid');
-  if (!agents || agents.length === 0) {
-    grid.innerHTML = '<div class="empty-state">No agent activity yet. Agents will appear here when they are spawned.</div>';
-    return;
-  }
-
-  // B5: Find latest task-started/heartbeat event per agent for "current task" display
-  const currentTasks = {};
-  const currentPhases = {};
-  if (events) {
-    for (const evt of events) {
-      if (evt.event === 'task-started' || evt.event === 'question-asked' || evt.event === 'heartbeat') {
-        currentTasks[evt.agent] = evt.task || evt.detail || '';
-        if (evt.phase) currentPhases[evt.agent] = evt.phase;
-      }
-      if (evt.event === 'task-completed' || evt.event === 'session-complete') {
-        delete currentTasks[evt.agent];
-        delete currentPhases[evt.agent];
-      }
-    }
-  }
-
-  grid.innerHTML = agents.map(agent => {
-    const pct = agent.tasksTotal > 0
-      ? Math.round((agent.tasksCompleted / agent.tasksTotal) * 100)
-      : 0;
-    const isActive = agent.status === 'active' || agent.status === 'working';
-    const cardClass = agent.status === 'working' ? 'is-working' : (isActive ? 'is-active' : '');
-    const currentTask = currentTasks[agent.agent];
-    const phase = agent.phase || currentPhases[agent.agent];
-    const pEmoji = phaseIcon(phase);
-
-    return `
-      <div class="agent-card ${cardClass}">
-        <div class="agent-card-header">
-          <span class="agent-name">${escapeHtml(agent.agent)}</span>
-          <span class="agent-icon">${agentIcon(agent.agent)}</span>
-        </div>
-        <span class="status-badge ${statusClass(agent.status)}${isActive ? ' pulse-active' : ''}">● ${escapeHtml(agent.status)}</span>
-        <div class="agent-meta">
-          ${agent.branch ? `<span>🌿 ${escapeHtml(agent.branch)}</span>` : ''}
-          ${agent.plan ? `<span>📋 ${escapeHtml(agent.plan)}</span>` : ''}
-          ${agent.lastEventTime ? `<span>🕐 ${timeAgo(agent.lastEventTime)}</span>` : ''}
-        </div>
-        ${currentTask ? `<div class="agent-current-task">${pEmoji ? pEmoji + ' ' : '▶ '}${escapeHtml(currentTask)}</div>` : ''}
-        ${agent.tasksTotal > 0 ? `
-          <div class="agent-progress">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${pct}%"></div>
-            </div>
-            <div class="progress-text">${agent.tasksCompleted}/${agent.tasksTotal} tasks (${pct}%)</div>
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }).join('');
-}
-
-function renderActivity(activity) {
-  // Working tree changes
-  const wtEl = document.getElementById('working-tree');
-  if (!activity || !activity.workingTreeChanges || activity.workingTreeChanges.length === 0) {
-    wtEl.innerHTML = '<div class="empty-state">No uncommitted changes.</div>';
-  } else {
-    wtEl.innerHTML = activity.workingTreeChanges.map(f => `
-      <div class="activity-item">
-        <span class="activity-type ${f.type}">${escapeHtml(f.type)}</span>
-        <span class="activity-file">${escapeHtml(f.file)}</span>
-      </div>
-    `).join('');
-  }
-
-  // Recent commits
-  const cmEl = document.getElementById('recent-commits');
-  if (!activity || !activity.recentCommits || activity.recentCommits.length === 0) {
-    cmEl.innerHTML = '<div class="empty-state">No recent commits.</div>';
-  } else {
-    cmEl.innerHTML = activity.recentCommits.map(c => `
-      <div class="commit-item">
-        <div>
-          <span class="commit-hash">${escapeHtml(c.shortHash)}</span>
-          <span class="commit-message">${escapeHtml(c.subject)}</span>
-        </div>
-        <div class="commit-meta">${escapeHtml(c.author || '')} · ${timeAgo(c.date)}${c.refs ? ` · ${escapeHtml(c.refs)}` : ''}</div>
-      </div>
-    `).join('');
-  }
-}
-
-function renderBranches(branchData) {
-  const tbody = document.getElementById('branches-tbody');
-  if (!branchData || !branchData.branches || branchData.branches.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No feature branches found.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = branchData.branches.map(b => `
-    <tr>
-      <td><span class="branch-name">${escapeHtml(b.name)}</span></td>
-      <td><span class="status-badge ${statusClass(b.status)}">● ${escapeHtml(b.status)}</span></td>
-      <td><code>${escapeHtml(b.lastCommit || '—')}</code></td>
-      <td>${formatDate(b.lastCommitDate)}</td>
-    </tr>
-  `).join('');
-}
-
-function renderPlans(plans) {
-  const container = document.getElementById('plans-container');
-  if (!plans || plans.length === 0) {
-    container.innerHTML = '<div class="empty-state">No plans found in .plans/ directory.</div>';
-    return;
-  }
-
-  container.innerHTML = plans.map(plan => {
-    const completedCount = plan.tasks.filter(t => t.completed).length;
-    const totalCount = plan.tasks.length;
-    const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-    return `
-      <div class="plan-card">
-        <div class="plan-header">
-          <span class="plan-title">${escapeHtml(plan.title || 'Untitled Plan')}</span>
-          <span class="status-badge ${plan.status === 'approved' ? 'status-active' : 'status-idle'}">
-            ${escapeHtml(plan.status || 'unknown')}
-          </span>
-        </div>
-        <div class="plan-file">${escapeHtml(plan.file)}</div>
-        ${plan.date ? `<div class="plan-file">📅 ${escapeHtml(plan.date)}</div>` : ''}
-        ${totalCount > 0 ? `
-          <div class="agent-progress">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${pct}%"></div>
-            </div>
-            <div class="progress-text">${completedCount}/${totalCount} tasks (${pct}%)</div>
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }).join('');
-}
-
-function renderEvents(events) {
-  const container = document.getElementById('events-timeline');
-  if (!events || events.length === 0) {
-    container.innerHTML = '<div class="empty-state">No events recorded yet. Events will appear as agents work.</div>';
-    return;
-  }
-
-  // Show newest first
-  const reversed = [...events].reverse();
-  container.innerHTML = reversed.map(evt => `
-    <div class="event-row">
-      <span class="event-time">${formatTime(evt.ts)}</span>
-      <span class="event-agent">${escapeHtml(evt.agent)}</span>
-      <span class="event-detail">
-        <span class="event-type">${eventTypeLabel(evt.event)}</span>
-        ${evt.task ? escapeHtml(evt.task) : ''}
-        ${evt.detail ? escapeHtml(evt.detail) : ''}
-        ${evt.branch ? `<span class="branch-name">${escapeHtml(evt.branch)}</span>` : ''}
-      </span>
-    </div>
-  `).join('');
-}
-
-// ── Graph Renderer ─────────────────────────────────────────
-
-function renderGraph(graphData) {
-  const container = document.getElementById('agents-graph');
-  if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
-    container.innerHTML = '<div class="empty-state">No agent relationships yet. Invoke subagents to see the graph.</div>';
-    return;
-  }
-
-  const { nodes, edges } = graphData;
-  const workstreams = graphData.workstreams || [];
-  const multiWorkstream = workstreams.length > 1;
-
-  // Build adjacency and find roots (nodes never appearing as edge target)
-  const childSet = new Set(edges.map(e => e.to));
-  const roots = nodes.filter(n => !childSet.has(n.id));
-  if (roots.length === 0 && nodes.length > 0) roots.push(nodes[0]);
-
-  // BFS to assign levels
-  const levels = {};
-  const adj = {};
-  for (const e of edges) {
-    if (!adj[e.from]) adj[e.from] = [];
-    adj[e.from].push(e.to);
-  }
-  const queue = roots.map(r => ({ id: r.id, level: 0 }));
-  const visited = new Set();
-  while (queue.length > 0) {
-    const { id, level } = queue.shift();
-    if (visited.has(id)) continue;
-    visited.add(id);
-    levels[id] = level;
-    if (adj[id]) {
-      for (const child of adj[id]) {
-        if (!visited.has(child)) queue.push({ id: child, level: level + 1 });
-      }
-    }
-  }
-  for (const n of nodes) {
-    if (levels[n.id] === undefined) levels[n.id] = 0;
-  }
-
-  // Layout constants
-  const nodeW = 140;
-  const padX = 20, padY = 30;
-  const containerWidth = container.clientWidth || 800;
-
-  // Status colors
-  const statusColors = {
-    'active': '#4ec9b0', 'working': '#4fc1ff', 'completed': '#608b4e',
-    'idle': '#6a6a6a', 'error': '#f44747',
-  };
-
-  // Workstream accent colors for edges
-  const wsColors = ['#4fc1ff', '#4ec9b0', '#ce9178', '#c586c0', '#dcdcaa', '#f44747'];
-  const wsColorMap = {};
-  workstreams.forEach((ws, i) => { wsColorMap[ws] = wsColors[i % wsColors.length]; });
-
-  // Node lookup by id
-  const nodeById = {};
-  for (const n of nodes) nodeById[n.id] = n;
-
-  // Helper: render a single enriched node
-  function renderNode(n, pos) {
-    const color = statusColors[n.status] || '#6a6a6a';
-    const isWorking = n.status === 'working';
-    const pEmoji = phaseIcon(n.phase);
-    const nodeHt = pos.h;
-    let g = `<g class="graph-node${isWorking ? ' graph-node-working' : ''}">`;
-    g += `<rect x="${pos.x}" y="${pos.y}" width="${nodeW}" height="${nodeHt}" rx="8" ry="8" fill="#252526" stroke="${color}" stroke-width="2"/>`;
-    const nameY = n.currentTask ? pos.y + 24 : pos.y + nodeHt / 2 + 5;
-    g += `<text class="graph-label" x="${pos.x + nodeW / 2}" y="${nameY}" text-anchor="middle" fill="#cccccc" font-size="12">${pEmoji ? pEmoji + ' ' : ''}${n.icon || '🤖'} ${escapeHtml(n.id)}</text>`;
-    if (n.currentTask) {
-      const taskText = n.currentTask.length > 20 ? n.currentTask.slice(0, 20) + '…' : n.currentTask;
-      g += `<text class="graph-label" x="${pos.x + nodeW / 2}" y="${pos.y + 48}" text-anchor="middle" fill="#9d9d9d" font-size="10">${escapeHtml(taskText)}</text>`;
-    }
-    g += `</g>`;
-    return g;
-  }
-
-  const positions = {};
-  let svgH, maxLevel = 0;
-
-  // Find global max level
-  for (const n of nodes) {
-    if (levels[n.id] > maxLevel) maxLevel = levels[n.id];
-  }
-
-  if (multiWorkstream) {
-    // C3: Group nodes by workstream
-    const wsByName = {};
-    for (const n of nodes) {
-      const ws = n.workstream || 'default';
-      if (!wsByName[ws]) wsByName[ws] = [];
-      wsByName[ws].push(n);
-    }
-    const wsKeys = workstreams.filter(ws => wsByName[ws] && wsByName[ws].length > 0);
-    // Include any workstreams not in the declared list
-    for (const k of Object.keys(wsByName)) {
-      if (!wsKeys.includes(k)) wsKeys.push(k);
-    }
-
-    const colWidth = Math.floor((containerWidth - padX * 2) / wsKeys.length);
-    const levelH = 100;
-    const labelOffset = 24;
-
-    for (let wi = 0; wi < wsKeys.length; wi++) {
-      const wsNodes = wsByName[wsKeys[wi]] || [];
-      const byLevel = {};
-      for (const n of wsNodes) {
-        const lvl = levels[n.id];
-        if (!byLevel[lvl]) byLevel[lvl] = [];
-        byLevel[lvl].push(n);
-      }
-      const colStart = padX + wi * colWidth;
-      for (const lvlStr of Object.keys(byLevel)) {
-        const lvl = parseInt(lvlStr, 10);
-        const row = byLevel[lvl];
-        const totalW = row.length * nodeW + (row.length - 1) * 20;
-        let startX = colStart + (colWidth - totalW) / 2;
-        if (startX < colStart) startX = colStart;
-        row.forEach((n, i) => {
-          positions[n.id] = {
-            x: startX + i * (nodeW + 20),
-            y: padY + labelOffset + lvl * levelH,
-            h: n.currentTask ? 70 : 50,
-          };
-        });
-      }
-    }
-
-    svgH = (maxLevel + 1) * levelH + padY * 2 + labelOffset;
-
-    // Build SVG with workstream markers
-    let markerDefs = '<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6a6a6a"/></marker>';
-    wsKeys.forEach((ws, i) => {
-      const c = wsColorMap[ws] || wsColors[i % wsColors.length];
-      markerDefs += `<marker id="arrow-ws${i}" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="${c}"/></marker>`;
-    });
-
-    let svg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${containerWidth} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<defs>${markerDefs}</defs>`;
-
-    // Draw workstream labels and dividers
-    for (let wi = 0; wi < wsKeys.length; wi++) {
-      const colStart = padX + wi * colWidth;
-      const wsColor = wsColorMap[wsKeys[wi]] || wsColors[wi % wsColors.length];
-      svg += `<text x="${colStart + colWidth / 2}" y="${padY + 12}" text-anchor="middle" fill="${wsColor}" font-size="11" font-weight="600" opacity="0.7">${escapeHtml(wsKeys[wi])}</text>`;
-      if (wi > 0) {
-        svg += `<line x1="${colStart}" y1="${padY}" x2="${colStart}" y2="${svgH - padY}" stroke="#3c3c3c" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>`;
-      }
-    }
-
-    // Draw edges with workstream accent colors
-    for (const e of edges) {
-      const from = positions[e.from];
-      const to = positions[e.to];
-      if (!from || !to) continue;
-      const fromNode = nodeById[e.from];
-      const toNode = nodeById[e.to];
-      const fromWs = fromNode ? fromNode.workstream : null;
-      const wsIdx = wsKeys.indexOf(fromWs);
-      const edgeColor = (wsIdx >= 0) ? (wsColorMap[fromWs] || '#6a6a6a') : '#6a6a6a';
-      const markerId = (wsIdx >= 0) ? `arrow-ws${wsIdx}` : 'arrowhead';
-      const isCross = fromNode && toNode && fromNode.workstream !== toNode.workstream;
-      const x1 = from.x + nodeW / 2, y1 = from.y + from.h;
-      const x2 = to.x + nodeW / 2, y2 = to.y;
-      svg += `<line class="graph-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${edgeColor}" stroke-width="2" ${isCross ? 'stroke-dasharray="6,3"' : ''} marker-end="url(#${markerId})">`;
-      if (e.task) svg += `<title>${escapeHtml(e.task)}</title>`;
-      svg += `</line>`;
-    }
-
-    // Draw nodes
-    for (const n of nodes) {
-      const pos = positions[n.id];
-      if (pos) svg += renderNode(n, pos);
-    }
-
-    svg += `</svg>`;
-    container.innerHTML = svg;
-  } else {
-    // Single workstream — centered layout with enriched nodes
-    const byLevel = {};
-    for (const n of nodes) {
-      const lvl = levels[n.id];
-      if (!byLevel[lvl]) byLevel[lvl] = [];
-      byLevel[lvl].push(n);
-    }
-
-    const levelH = 100;
-    for (let lvl = 0; lvl <= maxLevel; lvl++) {
-      const row = byLevel[lvl] || [];
-      const totalW = row.length * nodeW + (row.length - 1) * 30;
-      let startX = (containerWidth - totalW) / 2;
-      if (startX < padX) startX = padX;
-      row.forEach((n, i) => {
-        positions[n.id] = {
-          x: startX + i * (nodeW + 30),
-          y: padY + lvl * levelH,
-          h: n.currentTask ? 70 : 50,
-        };
-      });
-    }
-
-    svgH = (maxLevel + 1) * levelH + padY * 2;
-
-    let svg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${containerWidth} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6a6a6a"/></marker></defs>`;
-
-    // Draw edges
-    for (const e of edges) {
-      const from = positions[e.from];
-      const to = positions[e.to];
-      if (!from || !to) continue;
-      const x1 = from.x + nodeW / 2, y1 = from.y + from.h;
-      const x2 = to.x + nodeW / 2, y2 = to.y;
-      svg += `<line class="graph-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6a6a6a" stroke-width="2" marker-end="url(#arrowhead)">`;
-      if (e.task) svg += `<title>${escapeHtml(e.task)}</title>`;
-      svg += `</line>`;
-    }
-
-    // Draw enriched nodes
-    for (const n of nodes) {
-      const pos = positions[n.id];
-      if (pos) svg += renderNode(n, pos);
-    }
-
-    svg += `</svg>`;
-    container.innerHTML = svg;
-  }
-}
-
-// ── View Toggle ────────────────────────────────────────────
-
-function initViewToggle() {
-  const gridBtn = document.getElementById('view-grid');
-  const graphBtn = document.getElementById('view-graph');
-  const grid = document.getElementById('agents-grid');
-  const graph = document.getElementById('agents-graph');
-
-  const saved = localStorage.getItem('agent-view') || 'grid';
-  if (saved === 'graph') {
-    gridBtn.classList.remove('active');
-    graphBtn.classList.add('active');
-    grid.style.display = 'none';
-    graph.style.display = 'block';
-  }
-
-  gridBtn.addEventListener('click', () => {
-    gridBtn.classList.add('active');
-    graphBtn.classList.remove('active');
-    grid.style.display = '';
-    graph.style.display = 'none';
-    localStorage.setItem('agent-view', 'grid');
-  });
-
-  graphBtn.addEventListener('click', () => {
-    graphBtn.classList.add('active');
-    gridBtn.classList.remove('active');
-    grid.style.display = 'none';
-    graph.style.display = 'block';
-    localStorage.setItem('agent-view', 'graph');
-  });
-}
-
-// ── SSE Connection ─────────────────────────────────────────
+let eventSource = null;
+let reconnectDelay = 1000;
 
 function connectSSE() {
-  if (eventSource) eventSource.close();
-  try {
-    eventSource = new EventSource(`${API_BASE}/api/stream`);
-
-    eventSource.addEventListener('events', () => {
-      refresh();
-    });
-
-    eventSource.addEventListener('connected', () => {
-      // Switch to slow polling since SSE handles real-time updates
-      startAutoRefresh();
-    });
-
-    eventSource.onerror = () => {
-      eventSource.close();
-      eventSource = null;
-      // Fall back to fast polling
-      startAutoRefresh();
-    };
-  } catch {
-    eventSource = null;
+  if (eventSource) {
+    eventSource.close();
   }
-}
 
-// ── Main Refresh Loop ──────────────────────────────────────
+  eventSource = new EventSource('/api/stream');
 
-async function refresh() {
-  const statusEl = document.getElementById('connection-status');
+  eventSource.addEventListener('connected', () => {
+    reconnectDelay = 1000;
+    updateConnectionStatus(true);
+  });
 
-  try {
-    const [summary, agents, branches, plans, events, activity, graphData] = await Promise.all([
-      fetchJSON('/api/summary'),
-      fetchJSON('/api/agents'),
-      fetchJSON('/api/branches'),
-      fetchJSON('/api/plans'),
-      fetchJSON('/api/events?limit=100'),
-      fetchJSON('/api/activity'),
-      fetchJSON('/api/graph'),
-    ]);
-
-    renderSummary(summary, graphData, agents);
-    renderAgents(agents, events);
-    renderGraph(graphData);
-    renderActivity(activity);
-    renderBranches(branches);
-    renderPlans(plans);
-    renderEvents(events);
-
-    statusEl.textContent = eventSource ? '● Live (SSE)' : '● Live';
-    statusEl.className = 'status-badge status-active';
-  } catch {
-    statusEl.textContent = '● Disconnected';
-    statusEl.className = 'status-badge status-error';
-  }
-}
-
-function startAutoRefresh() {
-  if (refreshTimer) clearInterval(refreshTimer);
-  const interval = eventSource ? SLOW_POLL : FAST_POLL;
-  refreshTimer = setInterval(refresh, interval);
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-}
-
-// ── Init ───────────────────────────────────────────────────
-
-document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('auto-refresh');
-
-  toggle.addEventListener('change', () => {
-    if (toggle.checked) {
-      startAutoRefresh();
-    } else {
-      stopAutoRefresh();
+  eventSource.addEventListener('state', (e) => {
+    try {
+      const state = JSON.parse(e.data);
+      appState.agents = state.agents || {};
+      appState.graph = state.graph || { nodes: [], edges: [] };
+      appState.sessionStart = state.sessionStart;
+      appState.planPath = state.planPath;
+      renderAll();
+    } catch {
+      // ignore malformed state
     }
   });
 
-  initViewToggle();
+  eventSource.addEventListener('events', (e) => {
+    try {
+      const newEvents = JSON.parse(e.data);
+      for (const evt of newEvents) {
+        processClientEvent(evt);
+        appState.events.push(evt);
+        if (appState.events.length > 100) {
+          appState.events.shift();
+        }
+      }
+      renderAll();
+    } catch {
+      // ignore
+    }
+  });
+
+  eventSource.addEventListener('session-reset', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      appState.agents = {};
+      appState.graph = { nodes: [], edges: [] };
+      appState.events = [];
+      appState.selectedAgent = null;
+      appState.sessionStart = data.ts;
+      appState.planPath = data.plan || null;
+      renderAll();
+    } catch {
+      // ignore
+    }
+  });
+
+  eventSource.onerror = () => {
+    updateConnectionStatus(false);
+    eventSource.close();
+    setTimeout(() => {
+      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      connectSSE();
+    }, reconnectDelay);
+  };
+}
+
+function processClientEvent(evt) {
+  if (!evt || !evt.agent) return;
+
+  // Ensure agent exists
+  if (!appState.agents[evt.agent]) {
+    appState.agents[evt.agent] = {
+      name: evt.agent,
+      status: 'idle',
+      branch: null,
+      plan: null,
+      spawnedAt: null,
+      currentTask: null,
+      taskIndex: null,
+      taskTotal: null,
+      todos: [],
+      thinkingSummary: null,
+      parent: null,
+    };
+  }
+
+  const agent = appState.agents[evt.agent];
+
+  switch (evt.event) {
+    case 'spawned':
+      agent.status = 'active';
+      agent.spawnedAt = evt.ts;
+      if (evt.parent !== undefined) agent.parent = evt.parent;
+      addGraphNode(evt.agent);
+      if (evt.parent) addGraphEdge(evt.parent, evt.agent);
+      break;
+    case 'thinking':
+      agent.status = 'active';
+      agent.thinkingSummary = evt.detail || '';
+      break;
+    case 'todo-update':
+      if (Array.isArray(evt.todos)) agent.todos = evt.todos;
+      break;
+    case 'task-started':
+      agent.status = 'active';
+      agent.currentTask = evt.task || '';
+      agent.taskIndex = evt.taskIndex;
+      agent.taskTotal = evt.taskTotal;
+      break;
+    case 'task-completed':
+      agent.currentTask = null;
+      agent.taskIndex = evt.taskIndex;
+      agent.taskTotal = evt.taskTotal;
+      break;
+    case 'branch-created':
+      agent.branch = evt.branch || '';
+      break;
+    case 'plan-loaded':
+    case 'plan-saved':
+      if (evt.plan) agent.plan = evt.plan;
+      break;
+    case 'session-complete':
+      agent.status = evt.status === 'error' ? 'error' : 'completed';
+      break;
+    case 'error':
+      agent.status = 'error';
+      break;
+    case 'subagent-invoked':
+      agent.status = 'active';
+      if (evt.detail) {
+        const match = evt.detail.match(/@([\w-]+)/);
+        if (match) addGraphEdge(evt.agent, match[1]);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+function addGraphNode(id) {
+  if (!appState.graph.nodes.find((n) => n.id === id)) {
+    appState.graph.nodes.push({ id });
+  }
+}
+
+function addGraphEdge(from, to) {
+  addGraphNode(from);
+  addGraphNode(to);
+  if (!appState.graph.edges.find((e) => e.from === from && e.to === to)) {
+    appState.graph.edges.push({ from, to });
+  }
+}
+
+// ── Rendering ──────────────────────────────────────────
+
+function renderAll() {
+  renderHeader();
+  renderGraphView();
+  renderDetailPanel();
+  renderEventsBar();
+}
+
+function updateConnectionStatus(connected) {
+  const el = document.getElementById('connection-status');
+  if (!el) return;
+  el.textContent = connected ? '\u25CF Connected' : '\u25CB Disconnected';
+  el.className = connected ? 'status-badge connected' : 'status-badge disconnected';
+}
+
+function renderHeader() {
+  const durationEl = document.getElementById('session-duration');
+  const planLinkEl = document.getElementById('plan-link');
+  const statusEl = document.getElementById('session-status');
+
+  if (durationEl) {
+    durationEl.textContent = formatDuration(appState.sessionStart);
+  }
+
+  if (planLinkEl) {
+    if (appState.planPath) {
+      const filename = appState.planPath.split('/').pop();
+      planLinkEl.textContent = filename;
+      planLinkEl.href = '#';
+      planLinkEl.onclick = (e) => {
+        e.preventDefault();
+        showPlanViewer(filename);
+      };
+      planLinkEl.style.display = '';
+    } else {
+      planLinkEl.style.display = 'none';
+    }
+  }
+
+  if (statusEl) {
+    const agentCount = Object.keys(appState.agents).length;
+    const activeCount = Object.values(appState.agents).filter((a) => a.status === 'active').length;
+    statusEl.textContent = agentCount > 0 ? `${activeCount} active / ${agentCount} total` : 'Waiting for agents...';
+  }
+}
+
+function renderGraphView() {
+  const container = document.getElementById('graph-container');
+  if (!container || typeof window.renderGraph !== 'function') return;
+  window.renderGraph(container, appState.graph, appState.agents);
+}
+
+function renderDetailPanel() {
+  const panel = document.getElementById('detail-panel');
+  if (!panel) return;
+
+  if (!appState.selectedAgent || !appState.agents[appState.selectedAgent]) {
+    panel.classList.remove('visible');
+    return;
+  }
+
+  panel.classList.add('visible');
+  const agent = appState.agents[appState.selectedAgent];
+  const name = appState.selectedAgent;
+
+  let html = `<div class="detail-header">
+    <span class="detail-icon">${agentIcon(name)}</span>
+    <span class="detail-name">${escapeHtml(name)}</span>
+    <span class="detail-status status-${agent.status || 'idle'}">${agent.status || 'idle'}</span>
+    <button class="detail-close" id="detail-close">&times;</button>
+  </div>`;
+
+  // Info section
+  html += '<div class="detail-info">';
+  if (agent.branch) html += `<div><strong>Branch:</strong> ${escapeHtml(agent.branch)}</div>`;
+  if (agent.spawnedAt) html += `<div><strong>Running:</strong> ${formatDuration(agent.spawnedAt)}</div>`;
+  if (agent.currentTask) html += `<div><strong>Task:</strong> ${escapeHtml(agent.currentTask)}</div>`;
+  if (agent.taskIndex != null && agent.taskTotal) {
+    html += `<div><strong>Progress:</strong> ${agent.taskIndex} / ${agent.taskTotal}</div>`;
+  }
+  html += '</div>';
+
+  // Thinking summary
+  if (agent.thinkingSummary) {
+    html += `<div class="detail-section">
+      <h4>Thinking</h4>
+      <p>${escapeHtml(agent.thinkingSummary)}</p>
+    </div>`;
+  }
+
+  // Todos
+  if (agent.todos && agent.todos.length > 0) {
+    const completed = agent.todos.filter((t) => t.status === 'completed').length;
+    const total = agent.todos.length;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    html += `<div class="detail-section">
+      <h4>Todos (${completed}/${total})</h4>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <ul class="todo-list">`;
+    for (const todo of agent.todos) {
+      const icon = todo.status === 'completed' ? '\u2705' : todo.status === 'in-progress' ? '\u{1F504}' : '\u2B1C';
+      html += `<li class="todo-${todo.status}">${icon} ${escapeHtml(todo.title)}</li>`;
+    }
+    html += '</ul></div>';
+  }
+
+  // Agent events mini-timeline
+  const agentEvents = appState.events.filter((e) => e.agent === name).slice(-10);
+  if (agentEvents.length > 0) {
+    html += `<div class="detail-section">
+      <h4>Recent Events</h4>
+      <ul class="mini-timeline">`;
+    for (const evt of agentEvents) {
+      html += `<li><span class="evt-time">${formatTime(evt.ts)}</span> ${eventIcon(evt.event)} ${escapeHtml(evt.event)}</li>`;
+    }
+    html += '</ul></div>';
+  }
+
+  panel.innerHTML = html;
+
+  // Close button handler
+  const closeBtn = document.getElementById('detail-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      appState.selectedAgent = null;
+      renderDetailPanel();
+    });
+  }
+}
+
+function renderEventsBar() {
+  const bar = document.getElementById('events-bar');
+  const list = document.getElementById('events-list');
+  const toggle = document.getElementById('events-toggle');
+  if (!list) return;
+
+  const recent = appState.events.slice(-10).reverse();
+  if (recent.length === 0) {
+    list.innerHTML = '<div class="empty-state">No events yet.</div>';
+    if (toggle) toggle.textContent = `Events (0)`;
+    return;
+  }
+
+  if (toggle) toggle.textContent = `Events (${appState.events.length})`;
+
+  let html = '';
+  for (const evt of recent) {
+    html += `<div class="event-item">
+      <span class="evt-time">${formatTime(evt.ts)}</span>
+      <span class="evt-icon">${eventIcon(evt.event)}</span>
+      <span class="evt-agent">${escapeHtml(evt.agent)}</span>
+      <span class="evt-type">${escapeHtml(evt.event)}</span>
+      ${evt.detail ? `<span class="evt-detail">${escapeHtml(evt.detail)}</span>` : ''}
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+// ── Plan Viewer ────────────────────────────────────────
+
+function showPlanViewer(filename) {
+  const modal = document.getElementById('plan-modal');
+  const content = document.getElementById('plan-content');
+  if (!modal || !content) return;
+
+  content.textContent = 'Loading...';
+  modal.classList.add('visible');
+
+  fetch(`/api/plan/${encodeURIComponent(filename)}`)
+    .then((r) => {
+      if (!r.ok) throw new Error('Not found');
+      return r.text();
+    })
+    .then((text) => {
+      // Try to use marked if available
+      if (typeof window.marked === 'object' && typeof window.marked.parse === 'function') {
+        content.innerHTML = window.marked.parse(text);
+      } else {
+        content.textContent = text;
+        content.style.whiteSpace = 'pre-wrap';
+      }
+    })
+    .catch(() => {
+      content.textContent = 'Failed to load plan file.';
+    });
+}
+
+// ── Initialization ─────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Connect SSE
   connectSSE();
 
-  // Initial fetch
-  refresh();
-  startAutoRefresh();
+  // Graph node click handler
+  const graphContainer = document.getElementById('graph-container');
+  if (graphContainer) {
+    graphContainer.addEventListener('agent-selected', (e) => {
+      appState.selectedAgent = e.detail.agent;
+      renderDetailPanel();
+    });
+  }
+
+  // Events bar toggle
+  const eventsToggle = document.getElementById('events-toggle');
+  const eventsBar = document.getElementById('events-bar');
+  if (eventsToggle && eventsBar) {
+    eventsToggle.addEventListener('click', () => {
+      appState.eventsExpanded = !appState.eventsExpanded;
+      eventsBar.classList.toggle('expanded', appState.eventsExpanded);
+    });
+  }
+
+  // Plan modal close
+  const planClose = document.getElementById('plan-modal-close');
+  const planModal = document.getElementById('plan-modal');
+  if (planClose && planModal) {
+    planClose.addEventListener('click', () => {
+      planModal.classList.remove('visible');
+    });
+  }
+
+  // Session duration timer
+  setInterval(() => {
+    const durationEl = document.getElementById('session-duration');
+    if (durationEl && appState.sessionStart) {
+      durationEl.textContent = formatDuration(appState.sessionStart);
+    }
+  }, 1000);
+
+  // Initial render
+  renderAll();
 });

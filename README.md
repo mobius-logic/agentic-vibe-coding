@@ -50,6 +50,7 @@ Agents emit structured events via `dashboard/lib/emit-event.js`. The following e
 | Event | Purpose | Key Fields |
 |-------|---------|------------|
 | `spawned` | Agent session started (resets prior state, prunes completed agents from graph) | — |
+| `session-start` | Architect-only: resets all dashboard state and starts a fresh session | `--plan` |
 | `task-started` | Agent began a task | `--task`, `--taskIndex`, `--taskTotal` |
 | `task-completed` | Agent finished a task | `--task`, `--status` |
 | `session-complete` | Agent session ended | `--status` |

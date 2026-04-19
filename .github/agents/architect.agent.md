@@ -474,9 +474,28 @@ Before starting work, READ your memory log to review prior sessions and continue
 ## Agent Monitor Events (MANDATORY)
 You MUST emit dashboard events at every key milestone so the human can track your progress in real time on the Agent Monitor Dashboard. Run these commands in the terminal:
 
-**Session start** (run FIRST thing when you begin):
+**Session start** (run VERY FIRST — before anything else, triggers dashboard data wipe):
 ```
-node dashboard/lib/emit-event.js architect spawned
+node dashboard/lib/emit-event.js architect session-start
+```
+Once you know the plan path, re-emit with the plan reference:
+```
+node dashboard/lib/emit-event.js architect session-start --plan ".plans/<file>.md"
+```
+
+**Spawned** (run immediately after session-start):
+```
+node dashboard/lib/emit-event.js architect spawned --parent ""
+```
+
+**When reasoning/analyzing** (after each discovery round, when starting design):
+```
+node dashboard/lib/emit-event.js architect thinking --detail "<brief one-line summary of current reasoning>"
+```
+
+**When updating task list** (after using manage_todo_list):
+```
+node dashboard/lib/emit-event.js architect todo-update --todos '<JSON array of {id, title, status}>'
 ```
 
 **After each discovery round / interview question**:

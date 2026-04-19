@@ -1,21 +1,21 @@
 // dashboard/test/server.test.js
-// Integration tests for the dashboard HTTP server
+// Integration tests for the dashboard HTTP server v2
 
 'use strict';
 
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
-const { createServer, eventCache } = require('../server');
+const { createServer } = require('../server');
 
 let server;
 let baseUrl;
 
-function get(path) {
+function get(urlPath) {
   return new Promise((resolve, reject) => {
-    http.get(`${baseUrl}${path}`, (res) => {
+    http.get(`${baseUrl}${urlPath}`, (res) => {
       let body = '';
-      res.on('data', chunk => { body += chunk; });
+      res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => {
         resolve({
           status: res.statusCode,
@@ -28,7 +28,7 @@ function get(path) {
   });
 }
 
-describe('dashboard server', () => {
+describe('dashboard server v2', () => {
   before((_, done) => {
     server = createServer();
     server.listen(0, '127.0.0.1', () => {
@@ -39,15 +39,16 @@ describe('dashboard server', () => {
   });
 
   after((_, done) => {
-    eventCache.destroy();
     server.close(done);
   });
+
+  // --- Static file serving ---
 
   it('serves index.html at /', async () => {
     const res = await get('/');
     assert.equal(res.status, 200);
     assert.ok(res.headers['content-type'].includes('text/html'));
-    assert.ok(res.body.includes('Agent Monitor Dashboard'));
+    assert.ok(res.body.includes('<!DOCTYPE html'));
   });
 
   it('serves static CSS file', async () => {
@@ -67,128 +68,119 @@ describe('dashboard server', () => {
     assert.equal(res.status, 404);
   });
 
-  it('GET /api/summary returns summary data', async () => {
-    const res = await get('/api/summary');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok('agents' in data);
-    assert.ok('branches' in data);
-    assert.ok('tasks' in data);
-    assert.ok('recentEventsCount' in data);
-  });
-
-  it('GET /api/agents returns array', async () => {
-    const res = await get('/api/agents');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok(Array.isArray(data));
-  });
-
-  it('GET /api/branches returns branch data', async () => {
-    const res = await get('/api/branches');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok('branches' in data);
-    assert.ok('current' in data);
-  });
-
-  it('GET /api/plans returns array', async () => {
-    const res = await get('/api/plans');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok(Array.isArray(data));
-  });
-
-  it('GET /api/events returns array', async () => {
-    const res = await get('/api/events');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok(Array.isArray(data));
-  });
-
-  it('GET /api/events supports limit parameter', async () => {
-    const res = await get('/api/events?limit=5');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok(Array.isArray(data));
-  });
-
-  it('GET /api/logs returns array', async () => {
-    const res = await get('/api/logs');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok(Array.isArray(data));
-  });
-
-  it('GET /api/logs/:agent returns 404 for unknown agent', async () => {
-    const res = await get('/api/logs/nonexistent-agent');
-    assert.equal(res.status, 404);
-  });
-
-  it('returns 404 for unknown API endpoint', async () => {
-    const res = await get('/api/unknown');
-    assert.equal(res.status, 404);
-  });
-
   it('prevents path traversal in static files', async () => {
     const res = await get('/../package.json');
     assert.ok(res.status === 403 || res.status === 404);
   });
 
-  it('sets CORS headers', async () => {
-    const res = await get('/api/summary');
-    assert.equal(res.headers['access-control-allow-origin'], '*');
-  });
+  // --- GET /api/state ---
 
-  it('GET /api/graph returns nodes and edges', async () => {
-    const res = await get('/api/graph');
+  it('GET /api/state returns valid state object', async () => {
+    const res = await get('/api/state');
     assert.equal(res.status, 200);
+    assert.ok(res.headers['content-type'].includes('application/json'));
     const data = res.json();
-    assert.ok('nodes' in data, 'should have nodes');
-    assert.ok('edges' in data, 'should have edges');
-    assert.ok(Array.isArray(data.nodes));
-    assert.ok(Array.isArray(data.edges));
+    assert.ok('sessionStart' in data, 'should have sessionStart');
+    assert.ok('planPath' in data, 'should have planPath');
+    assert.ok('agents' in data, 'should have agents');
+    assert.ok('graph' in data, 'should have graph');
+    assert.ok('eventCount' in data, 'should have eventCount');
+    assert.equal(typeof data.eventCount, 'number');
   });
 
-  it('GET /api/stream returns SSE stream', (t, done) => {
+  it('GET /api/state graph has nodes and edges arrays', async () => {
+    const res = await get('/api/state');
+    const data = res.json();
+    assert.ok(Array.isArray(data.graph.nodes), 'graph.nodes should be an array');
+    assert.ok(Array.isArray(data.graph.edges), 'graph.edges should be an array');
+  });
+
+  // --- GET /api/plan/:filename ---
+
+  it('GET /api/plan/:filename serves a plan file', async () => {
+    const res = await get('/api/plan/README.md');
+    assert.equal(res.status, 200);
+    assert.ok(res.headers['content-type'].includes('text/plain'));
+    assert.ok(res.body.length > 0, 'plan body should not be empty');
+  });
+
+  it('GET /api/plan/:filename returns 404 for missing plan', async () => {
+    const res = await get('/api/plan/does-not-exist.md');
+    assert.equal(res.status, 404);
+  });
+
+  it('GET /api/plan/ rejects path traversal with ..', async () => {
+    const res = await get('/api/plan/..%2F..%2Fetc%2Fpasswd');
+    assert.ok(
+      res.status === 400 || res.status === 403 || res.status === 404,
+      `expected 400/403/404 but got ${res.status}`
+    );
+  });
+
+  it('GET /api/plan/ rejects filenames containing slash', async () => {
+    const res = await get('/api/plan/sub%2Ffile.md');
+    assert.ok(
+      res.status === 400 || res.status === 403 || res.status === 404,
+      `expected 400/403/404 but got ${res.status}`
+    );
+  });
+
+  // --- GET /api/stream (SSE) ---
+
+  it('GET /api/stream returns SSE with correct content-type', (t, done) => {
+    let finished = false;
     http.get(`${baseUrl}/api/stream`, (res) => {
       assert.equal(res.statusCode, 200);
       assert.ok(res.headers['content-type'].includes('text/event-stream'));
 
       let data = '';
-      res.on('data', chunk => {
+      res.on('data', (chunk) => {
         data += chunk.toString();
-        // We expect the connected event immediately
-        if (data.includes('event: connected')) {
+        if (!finished && data.includes('event: connected')) {
+          finished = true;
           res.destroy();
           done();
         }
       });
     }).on('error', (err) => {
-      // Connection reset after destroy is expected
       if (err.code !== 'ECONNRESET') {
         done(err);
       }
     });
   });
 
-  it('GET /api/agents does not override completed agents with inferred status', async () => {
-    const res = await get('/api/agents');
-    assert.equal(res.status, 200);
-    const agents = res.json();
-    // All agents from events should maintain their event-derived status
-    for (const agent of agents) {
-      if (agent.lastEvent === 'session-complete') {
-        assert.equal(agent.status, 'completed', `${agent.agent} should be completed`);
+  it('GET /api/stream sends state snapshot after connected', (t, done) => {
+    let finished = false;
+    http.get(`${baseUrl}/api/stream`, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk.toString();
+        if (!finished && data.includes('event: state')) {
+          finished = true;
+          const stateMatch = data.match(/event: state\ndata: (.+)\n/);
+          assert.ok(stateMatch, 'should have state event with data');
+          const parsed = JSON.parse(stateMatch[1]);
+          assert.ok('agents' in parsed, 'state snapshot should have agents');
+          res.destroy();
+          done();
+        }
+      });
+    }).on('error', (err) => {
+      if (err.code !== 'ECONNRESET') {
+        done(err);
       }
-    }
+    });
   });
 
-  it('GET /api/activity returns cached snapshot', async () => {
-    const res = await get('/api/activity');
-    assert.equal(res.status, 200);
-    const data = res.json();
-    assert.ok('status' in data);
-    assert.ok('inferredActiveAgents' in data);
+  // --- 404 for unknown API routes ---
+
+  it('returns 404 for unknown API routes', async () => {
+    const res = await get('/api/unknown');
+    assert.equal(res.status, 404);
+  });
+
+  it('returns 404 for /api/agents (removed in v2)', async () => {
+    const res = await get('/api/agents');
+    assert.equal(res.status, 404);
   });
 });

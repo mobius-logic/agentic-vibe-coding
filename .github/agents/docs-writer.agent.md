@@ -78,10 +78,13 @@ Before starting work, READ your memory log to review prior sessions and avoid re
 ## Agent Monitor Events (MANDATORY)
 You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
 
-**Session start**: `node dashboard/lib/emit-event.js docs-writer spawned`
+**Session start**: `node dashboard/lib/emit-event.js docs-writer spawned --parent "<lead-agent>"`
+**When reasoning/analyzing**: `node dashboard/lib/emit-event.js docs-writer thinking --detail "<brief one-line summary of current reasoning>"`
 **Task started**: `node dashboard/lib/emit-event.js docs-writer task-started --task "<description>"`
 **Task completed**: `node dashboard/lib/emit-event.js docs-writer task-completed --task "<description>"`
 **Session end**: `node dashboard/lib/emit-event.js docs-writer session-complete --status done`
+
+Replace `<lead-agent>` with the name of the lead who delegated to you (e.g., `backend-lead`, `frontend-lead`, `infra-lead`).
 
 If `dashboard/` does not exist in the project, skip this.
 
