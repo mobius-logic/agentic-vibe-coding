@@ -232,4 +232,60 @@ describe('SessionState', () => {
     assert.ok(node, 'node should exist');
     assert.equal(node.label, 'developer');
   });
+
+  // --- Multi-workstream tests ---
+
+  it('should store workstream field on agent from event', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned', workstream: 'backend' });
+    const s = state.getState();
+    assert.equal(s.agents.dev.workstream, 'backend');
+  });
+
+  it('should track workstream on non-spawned events', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'lead', event: 'task-started', task: 'Build', workstream: 'frontend' });
+    const s = state.getState();
+    assert.equal(s.agents.lead.workstream, 'frontend');
+  });
+
+  it('should return distinct workstream names from getWorkstreams()', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev1', event: 'spawned', workstream: 'backend' });
+    state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'dev2', event: 'spawned', workstream: 'frontend' });
+    state.processEvent({ ts: '2026-01-01T00:02:00Z', agent: 'dev3', event: 'spawned', workstream: 'backend' });
+    const ws = state.getWorkstreams();
+    assert.deepEqual(ws, ['backend', 'frontend']);
+  });
+
+  it('should return empty array from getWorkstreams() when no workstreams', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned' });
+    assert.deepEqual(state.getWorkstreams(), []);
+  });
+
+  it('should include workstream in graph nodes', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned', parent: 'lead', workstream: 'backend' });
+    const g = state.getGraph();
+    const node = g.nodes.find((n) => n.id === 'dev:lead');
+    assert.ok(node, 'node should exist');
+    assert.equal(node.workstream, 'backend');
+  });
+
+  it('should reset workstream tracking on session-start', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned', workstream: 'backend' });
+    assert.deepEqual(state.getWorkstreams(), ['backend']);
+    state.processEvent({ ts: '2026-01-01T01:00:00Z', agent: 'architect', event: 'session-start', plan: '.plans/new.md' });
+    assert.deepEqual(state.getWorkstreams(), []);
+  });
+
+  it('should handle events without workstream field (backward compat)', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'dev', event: 'spawned' });
+    const s = state.getState();
+    assert.equal(s.agents.dev.workstream, null);
+    assert.deepEqual(state.getWorkstreams(), []);
+  });
 });

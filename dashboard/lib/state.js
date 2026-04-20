@@ -16,12 +16,18 @@ class SessionState {
     this.sessionStart = null;
     this.planPath = null;
     this.events = [];
+    this.workstreams = new Set();
   }
 
   processEvent(evt) {
     if (!evt || !evt.agent || !evt.event) return;
 
     this.events.push(evt);
+
+    // Track workstream
+    if (evt.workstream) {
+      this.workstreams.add(evt.workstream);
+    }
 
     if (evt.event === 'session-start') {
       if (evt.agent !== 'architect') {
@@ -42,6 +48,9 @@ class SessionState {
     if (evt.event !== 'spawned') {
       this._ensureAgent(evt.agent);
       this._addGraphNode(evt.agent);
+      if (evt.workstream) {
+        this._setAgentField(evt.agent, 'workstream', evt.workstream);
+      }
     }
 
     switch (evt.event) {
@@ -58,6 +67,9 @@ class SessionState {
           this._setAgentField(instanceId, 'spawnedAt', evt.ts);
           this._setAgentField(instanceId, 'parent', parent);
           this._addGraphNode(instanceId, evt.agent);
+          if (evt.workstream) {
+            this._setAgentField(instanceId, 'workstream', evt.workstream);
+          }
           if (parent) {
             // Resolve parent to its instance ID if it exists (e.g., "backend-lead"
             // might actually be "backend-lead:architect" in the graph).
@@ -154,8 +166,12 @@ class SessionState {
   }
 
   getGraph() {
+    const nodes = this.graphNodes.map((n) => {
+      const agent = this.agents.get(n.id);
+      return { ...n, workstream: agent ? agent.workstream : null };
+    });
     return {
-      nodes: [...this.graphNodes],
+      nodes,
       edges: [...this.graphEdges],
     };
   }
@@ -174,6 +190,10 @@ class SessionState {
     };
   }
 
+  getWorkstreams() {
+    return [...this.workstreams].sort();
+  }
+
   _ensureAgent(name) {
     if (!this.agents.has(name)) {
       this.agents.set(name, {
@@ -188,6 +208,7 @@ class SessionState {
         todos: [],
         thinkingSummary: null,
         parent: null,
+        workstream: null,
       });
       // Add graph node — for non-spawned events, id and label are the same.
       // For spawned events, the spawned handler calls _addGraphNode with a

@@ -183,4 +183,19 @@ describe('dashboard server v2', () => {
     const res = await get('/api/agents');
     assert.equal(res.status, 404);
   });
+
+  // --- Multi-workstream integration tests ---
+
+  it('GET /api/state includes workstream data when agents have workstreams', async () => {
+    // Inject events directly into server state for testing
+    server._state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'test-ws-agent', event: 'spawned', workstream: 'backend' });
+    const res = await get('/api/state');
+    const data = res.json();
+    assert.ok(data.agents['test-ws-agent'], 'agent should exist');
+    assert.equal(data.agents['test-ws-agent'].workstream, 'backend');
+  });
+
+  it('server tracks byte offsets per file', () => {
+    assert.ok(server._byteOffsets instanceof Map, 'byteOffsets should be a Map');
+  });
 });
