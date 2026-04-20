@@ -37,21 +37,36 @@ class SessionState {
       return;
     }
 
-    this._ensureAgent(evt.agent);
+    // For spawned events, skip generic _ensureAgent — the spawned handler
+    // manages agent creation with instance IDs (role:parent format).
+    if (evt.event !== 'spawned') {
+      this._ensureAgent(evt.agent);
+      this._addGraphNode(evt.agent);
+    }
 
     switch (evt.event) {
       case 'spawned':
-        this._setAgentField(evt.agent, 'status', 'active');
-        this._setAgentField(evt.agent, 'spawnedAt', evt.ts);
-        if (evt.parent !== undefined) {
-          this._setAgentField(evt.agent, 'parent', evt.parent);
-        }
-        this._addGraphNode(evt.agent);
-        if (evt.parent) {
-          this._addGraphEdge(evt.parent, evt.agent);
-        }
-        if (!this.sessionStart) {
-          this.sessionStart = evt.ts;
+        {
+          // Support multiple instances of the same role (e.g., developer spawned
+          // by backend-lead AND frontend-lead). Use "role:parent" as the instance
+          // ID so each parent-child relationship gets its own graph node.
+          const parent = evt.parent || '';
+          const instanceId = parent ? `${evt.agent}:${parent}` : evt.agent;
+          this._ensureAgent(instanceId);
+          this._setAgentField(instanceId, 'role', evt.agent);
+          this._setAgentField(instanceId, 'status', 'active');
+          this._setAgentField(instanceId, 'spawnedAt', evt.ts);
+          this._setAgentField(instanceId, 'parent', parent);
+          this._addGraphNode(instanceId, evt.agent);
+          if (parent) {
+            // Resolve parent to its instance ID if it exists (e.g., "backend-lead"
+            // might actually be "backend-lead:architect" in the graph).
+            const parentNodeId = this._resolveNodeId(parent);
+            this._addGraphEdge(parentNodeId, instanceId);
+          }
+          if (!this.sessionStart) {
+            this.sessionStart = evt.ts;
+          }
         }
         break;
 
@@ -88,8 +103,11 @@ class SessionState {
         if (evt.detail) {
           const match = evt.detail.match(/@([\w-]+)/);
           if (match) {
-            const childName = match[1];
-            this._addGraphEdge(evt.agent, childName);
+            const childRole = match[1];
+            // Use instance ID "role:parent" to match the spawned event
+            const childInstanceId = `${childRole}:${evt.agent}`;
+            this._addGraphNode(childInstanceId, childRole);
+            this._addGraphEdge(evt.agent, childInstanceId);
           }
         }
         break;
@@ -146,7 +164,9 @@ class SessionState {
     const agent = this.agents.get(name);
     if (!agent) return null;
 
-    const agentEvents = this.events.filter((e) => e.agent === name);
+    // Match events by instance ID or by role name
+    const role = agent.role || name;
+    const agentEvents = this.events.filter((e) => e.agent === name || e.agent === role);
     return {
       ...agent,
       name,
@@ -169,7 +189,10 @@ class SessionState {
         thinkingSummary: null,
         parent: null,
       });
-      this._addGraphNode(name);
+      // Add graph node — for non-spawned events, id and label are the same.
+      // For spawned events, the spawned handler calls _addGraphNode with a
+      // proper label AFTER _ensureAgent, so we skip here to avoid creating
+      // a node with a wrong label (instance ID as label).
     }
   }
 
@@ -180,10 +203,23 @@ class SessionState {
     }
   }
 
-  _addGraphNode(name) {
-    if (!this.graphNodes.find((n) => n.id === name)) {
-      this.graphNodes.push({ id: name });
+  _addGraphNode(id, label) {
+    if (!this.graphNodes.find((n) => n.id === id)) {
+      this.graphNodes.push({ id, label: label || id });
     }
+  }
+
+  /**
+   * Resolve a role name to its instance ID in the graph.
+   * E.g., "backend-lead" → "backend-lead:architect" if that node exists.
+   * Falls back to the raw name if no instance node is found.
+   */
+  _resolveNodeId(name) {
+    // Exact match first
+    if (this.graphNodes.find((n) => n.id === name)) return name;
+    // Find an instance node with this role (label matches)
+    const instanceNode = this.graphNodes.find((n) => n.label === name);
+    return instanceNode ? instanceNode.id : name;
   }
 
   _addGraphEdge(from, to) {

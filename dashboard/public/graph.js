@@ -170,10 +170,11 @@ function renderGraph(container, graphData, agents) {
     const pos = positions.get(node.id);
     if (!pos) continue;
 
-    const agent = agents ? agents[node.id] : null;
+    const agent = agents ? (agents[node.id] || agents[node.label]) : null;
     const status = agent ? agent.status : 'idle';
     const color = statusColors[status] || statusColors.idle;
-    const icon = agentIcons[node.id] || '\u{1F916}';
+    const displayName = node.label || node.id;
+    const icon = agentIcons[displayName] || agentIcons[node.id] || '\u{1F916}';
     const runTime = agent ? formatRunningTime(agent.spawnedAt) : '';
     const isActive = status === 'active';
 
@@ -186,7 +187,7 @@ function renderGraph(container, graphData, agents) {
 
     // Icon + name
     svg += `<text x="${pos.x + 24}" y="${pos.y + 24}" fill="#e0e0e0" font-size="13" font-family="sans-serif">
-      ${icon} ${escapeXml(node.id)}</text>`;
+      ${icon} ${escapeXml(displayName)}</text>`;
 
     // Running time
     if (runTime) {

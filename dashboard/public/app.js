@@ -150,10 +150,16 @@ function connectSSE() {
 function processClientEvent(evt) {
   if (!evt || !evt.agent) return;
 
+  // For spawned events with a parent, use instance ID "role:parent"
+  const isSpawned = evt.event === 'spawned';
+  const spawnParent = isSpawned ? (evt.parent || '') : '';
+  const agentKey = (isSpawned && spawnParent) ? `${evt.agent}:${spawnParent}` : evt.agent;
+
   // Ensure agent exists
-  if (!appState.agents[evt.agent]) {
-    appState.agents[evt.agent] = {
-      name: evt.agent,
+  if (!appState.agents[agentKey]) {
+    appState.agents[agentKey] = {
+      name: agentKey,
+      role: evt.agent,
       status: 'idle',
       branch: null,
       plan: null,
@@ -167,15 +173,18 @@ function processClientEvent(evt) {
     };
   }
 
-  const agent = appState.agents[evt.agent];
+  const agent = appState.agents[agentKey];
 
   switch (evt.event) {
     case 'spawned':
-      agent.status = 'active';
-      agent.spawnedAt = evt.ts;
-      if (evt.parent !== undefined) agent.parent = evt.parent;
-      addGraphNode(evt.agent);
-      if (evt.parent) addGraphEdge(evt.parent, evt.agent);
+      {
+        agent.role = evt.agent;
+        agent.status = 'active';
+        agent.spawnedAt = evt.ts;
+        agent.parent = spawnParent;
+        addGraphNode(agentKey, evt.agent);
+        if (spawnParent) addGraphEdge(spawnParent, agentKey);
+      }
       break;
     case 'thinking':
       agent.status = 'active';
@@ -212,7 +221,12 @@ function processClientEvent(evt) {
       agent.status = 'active';
       if (evt.detail) {
         const match = evt.detail.match(/@([\w-]+)/);
-        if (match) addGraphEdge(evt.agent, match[1]);
+        if (match) {
+          const childRole = match[1];
+          const childInstanceId = `${childRole}:${evt.agent}`;
+          addGraphNode(childInstanceId, childRole);
+          addGraphEdge(evt.agent, childInstanceId);
+        }
       }
       break;
     default:
@@ -220,9 +234,9 @@ function processClientEvent(evt) {
   }
 }
 
-function addGraphNode(id) {
+function addGraphNode(id, label) {
   if (!appState.graph.nodes.find((n) => n.id === id)) {
-    appState.graph.nodes.push({ id });
+    appState.graph.nodes.push({ id, label: label || id });
   }
 }
 
@@ -299,10 +313,11 @@ function renderDetailPanel() {
   panel.classList.add('visible');
   const agent = appState.agents[appState.selectedAgent];
   const name = appState.selectedAgent;
+  const displayName = agent.role || name;
 
   let html = `<div class="detail-header">
-    <span class="detail-icon">${agentIcon(name)}</span>
-    <span class="detail-name">${escapeHtml(name)}</span>
+    <span class="detail-icon">${agentIcon(displayName)}</span>
+    <span class="detail-name">${escapeHtml(displayName)}</span>
     <span class="detail-status status-${agent.status || 'idle'}">${agent.status || 'idle'}</span>
     <button class="detail-close" id="detail-close">&times;</button>
   </div>`;
@@ -342,8 +357,8 @@ function renderDetailPanel() {
     html += '</ul></div>';
   }
 
-  // Agent events mini-timeline
-  const agentEvents = appState.events.filter((e) => e.agent === name).slice(-10);
+  // Agent events mini-timeline — match by instance ID or by role name
+  const agentEvents = appState.events.filter((e) => e.agent === name || e.agent === displayName).slice(-10);
   if (agentEvents.length > 0) {
     html += `<div class="detail-section">
       <h4>Recent Events</h4>

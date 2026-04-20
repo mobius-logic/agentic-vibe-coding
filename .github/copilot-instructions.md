@@ -92,9 +92,9 @@ Agents emit events via `node dashboard/lib/emit-event.js <agent> <event> [option
 Note: `session-start` triggers a full dashboard data wipe. Only the architect should emit it.
 
 ## Strict Delegation Protocol (MANDATORY)
-**Protocol Reference**: `.plans/template/2026-04-09-180237-strict-delegation-protocol.md`
 
 All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.
+Leads MUST delegate to subagents — they must NEVER write code, run tests, review code, or write docs themselves.
 
 | Gate | Required Action | Cannot Proceed Until |
 |------|----------------|---------------------|

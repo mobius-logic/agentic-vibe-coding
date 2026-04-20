@@ -27,6 +27,7 @@ describe('SessionState', () => {
     assert.equal(s.agents.architect.spawnedAt, '2026-01-01T00:00:00Z');
     assert.equal(s.graph.nodes.length, 1);
     assert.equal(s.graph.nodes[0].id, 'architect');
+    assert.equal(s.graph.nodes[0].label, 'architect');
   });
 
   it('should build parent-child edges from spawned events', () => {
@@ -36,7 +37,8 @@ describe('SessionState', () => {
     const g = state.getGraph();
     assert.equal(g.edges.length, 1);
     assert.equal(g.edges[0].from, 'architect');
-    assert.equal(g.edges[0].to, 'frontend-lead');
+    // Instance ID format: role:parent
+    assert.equal(g.edges[0].to, 'frontend-lead:architect');
   });
 
   it('should handle session-start by resetting state', () => {
@@ -109,7 +111,8 @@ describe('SessionState', () => {
     const state = new SessionState();
     state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'lead', event: 'subagent-invoked', detail: '@developer: build feature' });
     const g = state.getGraph();
-    assert.ok(g.edges.find((e) => e.from === 'lead' && e.to === 'developer'));
+    // Instance ID format: childRole:parent
+    assert.ok(g.edges.find((e) => e.from === 'lead' && e.to === 'developer:lead'));
   });
 
   it('should return agent detail with filtered events', () => {
@@ -149,7 +152,8 @@ describe('SessionState', () => {
     state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'lead', event: 'subagent-invoked', detail: '@dev: task1' });
     state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'lead', event: 'subagent-invoked', detail: '@dev: task2' });
     const g = state.getGraph();
-    const edges = g.edges.filter((e) => e.from === 'lead' && e.to === 'dev');
+    // Instance ID: dev:lead
+    const edges = g.edges.filter((e) => e.from === 'lead' && e.to === 'dev:lead');
     assert.equal(edges.length, 1);
   });
 
@@ -200,5 +204,32 @@ describe('SessionState', () => {
     assert.equal(state.getState().planPath, '.plans/old.md');
     state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'arch', event: 'plan-saved', plan: '.plans/new.md' });
     assert.equal(state.getState().planPath, '.plans/new.md');
+  });
+
+  it('should create separate graph nodes for same role with different parents', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'architect', event: 'spawned', parent: '' });
+    state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'backend-lead', event: 'spawned', parent: 'architect' });
+    state.processEvent({ ts: '2026-01-01T00:02:00Z', agent: 'frontend-lead', event: 'spawned', parent: 'architect' });
+    state.processEvent({ ts: '2026-01-01T00:03:00Z', agent: 'developer', event: 'spawned', parent: 'backend-lead' });
+    state.processEvent({ ts: '2026-01-01T00:04:00Z', agent: 'developer', event: 'spawned', parent: 'frontend-lead' });
+    const g = state.getGraph();
+    // Two separate developer nodes with different instance IDs
+    const devNodes = g.nodes.filter((n) => n.label === 'developer');
+    assert.equal(devNodes.length, 2, 'should have 2 developer nodes');
+    assert.ok(devNodes.find((n) => n.id === 'developer:backend-lead'));
+    assert.ok(devNodes.find((n) => n.id === 'developer:frontend-lead'));
+    // Each connected to their parent
+    assert.ok(g.edges.find((e) => e.from === 'backend-lead:architect' && e.to === 'developer:backend-lead'));
+    assert.ok(g.edges.find((e) => e.from === 'frontend-lead:architect' && e.to === 'developer:frontend-lead'));
+  });
+
+  it('should store label on graph nodes', () => {
+    const state = new SessionState();
+    state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'developer', event: 'spawned', parent: 'backend-lead' });
+    const g = state.getGraph();
+    const node = g.nodes.find((n) => n.id === 'developer:backend-lead');
+    assert.ok(node, 'node should exist');
+    assert.equal(node.label, 'developer');
   });
 });
