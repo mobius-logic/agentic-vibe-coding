@@ -17,6 +17,12 @@ const GRAPH_CONFIG = {
     error: '#f44747',
     idle: '#6a6a6a',
   },
+  workstreamColors: {
+    backend: '#4a9eff',
+    frontend: '#4aff8a',
+    infra: '#ffaa4a',
+    default: '#aaaaaa',
+  },
   agentIcons: {
     'architect': '\u{1F3D7}',
     'backend-lead': '\u2699',
@@ -128,7 +134,7 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function renderGraph(container, graphData, agents) {
+function renderGraph(container, graphData, agents, workstreamFilter) {
   if (!container) return;
 
   const { nodes, edges } = graphData;
@@ -137,8 +143,28 @@ function renderGraph(container, graphData, agents) {
     return;
   }
 
-  const { positions, svgWidth, svgHeight } = computeLayout(nodes, edges);
-  const { nodeWidth, nodeHeight, nodeRadius, statusColors, agentIcons } = GRAPH_CONFIG;
+  // Filter nodes by workstream if filter is active
+  const filterActive = workstreamFilter && workstreamFilter.size > 0;
+  const visibleNodeIds = new Set();
+
+  for (const node of nodes) {
+    const agent = agents ? (agents[node.id] || agents[node.label]) : null;
+    const ws = agent ? agent.workstream : null;
+    if (!filterActive || !ws || workstreamFilter.has(ws)) {
+      visibleNodeIds.add(node.id);
+    }
+  }
+
+  const visibleNodes = nodes.filter((n) => visibleNodeIds.has(n.id));
+  const visibleEdges = edges.filter((e) => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to));
+
+  if (visibleNodes.length === 0) {
+    container.innerHTML = '<div class="empty-state">No agents match the selected workstream filter.</div>';
+    return;
+  }
+
+  const { positions, svgWidth, svgHeight } = computeLayout(visibleNodes, visibleEdges);
+  const { nodeWidth, nodeHeight, nodeRadius, statusColors, workstreamColors, agentIcons } = GRAPH_CONFIG;
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" class="spawn-graph">`;
 
@@ -150,7 +176,7 @@ function renderGraph(container, graphData, agents) {
   </defs>`;
 
   // Draw edges
-  for (const edge of edges) {
+  for (const edge of visibleEdges) {
     const fromPos = positions.get(edge.from);
     const toPos = positions.get(edge.to);
     if (!fromPos || !toPos) continue;
@@ -166,7 +192,7 @@ function renderGraph(container, graphData, agents) {
   }
 
   // Draw nodes
-  for (const node of nodes) {
+  for (const node of visibleNodes) {
     const pos = positions.get(node.id);
     if (!pos) continue;
 
@@ -202,6 +228,20 @@ function renderGraph(container, graphData, agents) {
         : agent.currentTask;
       svg += `<text x="${pos.x + 14}" y="${pos.y + 44}" fill="#9d9d9d" font-size="10" 
         font-family="sans-serif">${escapeXml(taskText)}</text>`;
+    }
+
+    // Workstream badge
+    const ws = agent ? agent.workstream : null;
+    if (ws) {
+      const wsColor = workstreamColors[ws] || workstreamColors.default;
+      const wsLabel = escapeXml(ws);
+      const badgeX = pos.x + nodeWidth - 10;
+      const badgeY = pos.y + 44;
+      const badgeWidth = ws.length * 6 + 10;
+      svg += `<rect x="${badgeX - badgeWidth}" y="${badgeY - 9}" width="${badgeWidth}" height="14" 
+        rx="3" ry="3" fill="${wsColor}" fill-opacity="0.2"/>`;
+      svg += `<text x="${badgeX - badgeWidth / 2}" y="${badgeY}" fill="${wsColor}" font-size="9" 
+        font-family="sans-serif" text-anchor="middle" font-weight="600">${wsLabel}</text>`;
     }
 
     svg += '</g>';

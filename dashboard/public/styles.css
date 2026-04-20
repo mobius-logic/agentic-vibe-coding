@@ -449,3 +449,77 @@ main {
     min-width: 300px;
   }
 }
+
+/* ── Workstream Filters ─────────────────── */
+
+.workstream-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.workstream-filters:empty {
+  display: none;
+}
+
+.workstream-filters-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+
+.workstream-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.workstream-filter-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workstream-filter-btn.active {
+  color: var(--text-bright);
+  border-color: currentColor;
+}
+
+.workstream-filter-btn .ws-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ── Workstream Badges ──────────────────── */
+
+.workstream-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Workstream Colors ──────────────────── */
+
+.workstream-backend { background: rgba(74, 158, 255, 0.2); color: #4a9eff; }
+.workstream-frontend { background: rgba(74, 255, 138, 0.2); color: #4aff8a; }
+.workstream-infra { background: rgba(255, 170, 74, 0.2); color: #ffaa4a; }
+.workstream-default { background: rgba(170, 170, 170, 0.2); color: #aaaaaa; }

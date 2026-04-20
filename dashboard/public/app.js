@@ -13,6 +13,8 @@ const appState = {
   events: [],
   selectedAgent: null,
   eventsExpanded: false,
+  workstreamFilter: new Set(),
+  workstreams: [],
 };
 
 // ── Utility ────────────────────────────────────────────
@@ -131,6 +133,8 @@ function connectSSE() {
       appState.selectedAgent = null;
       appState.sessionStart = data.ts;
       appState.planPath = data.plan || null;
+      appState.workstreamFilter.clear();
+      appState.workstreams = [];
       renderAll();
     } catch {
       // ignore
@@ -170,10 +174,16 @@ function processClientEvent(evt) {
       todos: [],
       thinkingSummary: null,
       parent: null,
+      workstream: null,
     };
   }
 
   const agent = appState.agents[agentKey];
+
+  // Store workstream from event
+  if (evt.workstream && !agent.workstream) {
+    agent.workstream = evt.workstream;
+  }
 
   switch (evt.event) {
     case 'spawned':
@@ -248,10 +258,63 @@ function addGraphEdge(from, to) {
   }
 }
 
+// ── Workstream Management ──────────────────────────────
+
+function updateWorkstreams() {
+  const wsSet = new Set();
+  for (const agent of Object.values(appState.agents)) {
+    if (agent.workstream) wsSet.add(agent.workstream);
+  }
+  appState.workstreams = [...wsSet].sort();
+}
+
+function toggleWorkstreamFilter(workstream) {
+  if (appState.workstreamFilter.has(workstream)) {
+    appState.workstreamFilter.delete(workstream);
+  } else {
+    appState.workstreamFilter.add(workstream);
+  }
+  renderAll();
+}
+
+function getWorkstreamColorClass(ws) {
+  const known = ['backend', 'frontend', 'infra'];
+  return known.includes(ws) ? `workstream-${ws}` : 'workstream-default';
+}
+
+function renderWorkstreamFilters() {
+  const container = document.getElementById('workstream-filters');
+  if (!container) return;
+
+  if (appState.workstreams.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const wsColors = { backend: '#4a9eff', frontend: '#4aff8a', infra: '#ffaa4a' };
+  let html = '<span class="workstream-filters-label">Workstreams:</span>';
+  for (const ws of appState.workstreams) {
+    const active = appState.workstreamFilter.has(ws) ? ' active' : '';
+    const color = wsColors[ws] || '#aaaaaa';
+    html += `<button class="workstream-filter-btn${active}" data-workstream="${escapeHtml(ws)}">
+      <span class="ws-dot" style="background:${color}"></span>${escapeHtml(ws)}</button>`;
+  }
+  container.innerHTML = html;
+
+  // Attach click handlers
+  for (const btn of container.querySelectorAll('.workstream-filter-btn')) {
+    btn.addEventListener('click', () => {
+      toggleWorkstreamFilter(btn.getAttribute('data-workstream'));
+    });
+  }
+}
+
 // ── Rendering ──────────────────────────────────────────
 
 function renderAll() {
+  updateWorkstreams();
   renderHeader();
+  renderWorkstreamFilters();
   renderGraphView();
   renderDetailPanel();
   renderEventsBar();
@@ -298,7 +361,7 @@ function renderHeader() {
 function renderGraphView() {
   const container = document.getElementById('graph-container');
   if (!container || typeof window.renderGraph !== 'function') return;
-  window.renderGraph(container, appState.graph, appState.agents);
+  window.renderGraph(container, appState.graph, appState.agents, appState.workstreamFilter);
 }
 
 function renderDetailPanel() {
@@ -324,6 +387,10 @@ function renderDetailPanel() {
 
   // Info section
   html += '<div class="detail-info">';
+  if (agent.workstream) {
+    const wsClass = getWorkstreamColorClass(agent.workstream);
+    html += `<div><strong>Workstream:</strong> <span class="workstream-badge ${wsClass}">${escapeHtml(agent.workstream)}</span></div>`;
+  }
   if (agent.branch) html += `<div><strong>Branch:</strong> ${escapeHtml(agent.branch)}</div>`;
   if (agent.spawnedAt) html += `<div><strong>Running:</strong> ${formatDuration(agent.spawnedAt)}</div>`;
   if (agent.currentTask) html += `<div><strong>Task:</strong> ${escapeHtml(agent.currentTask)}</div>`;
@@ -387,21 +454,34 @@ function renderEventsBar() {
   const toggle = document.getElementById('events-toggle');
   if (!list) return;
 
-  const recent = appState.events.slice(-10).reverse();
+  // Filter events by workstream if filter is active
+  const filterActive = appState.workstreamFilter.size > 0;
+  const filteredEvents = filterActive
+    ? appState.events.filter((e) => {
+      if (!e.workstream) return true; // events without workstream always shown
+      return appState.workstreamFilter.has(e.workstream);
+    })
+    : appState.events;
+
+  const recent = filteredEvents.slice(-10).reverse();
   if (recent.length === 0) {
     list.innerHTML = '<div class="empty-state">No events yet.</div>';
     if (toggle) toggle.textContent = `Events (0)`;
     return;
   }
 
-  if (toggle) toggle.textContent = `Events (${appState.events.length})`;
+  if (toggle) toggle.textContent = `Events (${filteredEvents.length})`;
 
   let html = '';
   for (const evt of recent) {
+    const wsBadge = evt.workstream
+      ? `<span class="workstream-badge ${getWorkstreamColorClass(evt.workstream)}">${escapeHtml(evt.workstream)}</span>`
+      : '';
     html += `<div class="event-item">
       <span class="evt-time">${formatTime(evt.ts)}</span>
       <span class="evt-icon">${eventIcon(evt.event)}</span>
       <span class="evt-agent">${escapeHtml(evt.agent)}</span>
+      ${wsBadge}
       <span class="evt-type">${escapeHtml(evt.event)}</span>
       ${evt.detail ? `<span class="evt-detail">${escapeHtml(evt.detail)}</span>` : ''}
     </div>`;

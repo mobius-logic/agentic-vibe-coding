@@ -91,6 +91,42 @@ Agents emit events via `node dashboard/lib/emit-event.js <agent> <event> [option
 
 Note: `session-start` triggers a full dashboard data wipe. Only the architect should emit it.
 
+### Multi-Workstream Event Protocol
+
+When multiple workstreams run in parallel (e.g., in separate Codespaces), the dashboard supports per-workstream event files and cross-Codespace event transport.
+
+#### Per-Workstream Event Files
+
+Events are routed to workstream-specific files based on the `--workstream` flag:
+
+| Workstream | Event File |
+|------------|------------|
+| _(none / architect)_ | `.agent-events/events.jsonl` |
+| `backend` | `.agent-events/events-backend.jsonl` |
+| `frontend` | `.agent-events/events-frontend.jsonl` |
+| `infra` | `.agent-events/events-infra.jsonl` |
+
+Usage: `node dashboard/lib/emit-event.js <agent> <event> --workstream <name> [options]`
+
+Lead agents MUST include `--workstream <name>` on ALL `emit-event.js` calls. Subagents inherit the workstream from the lead's Delegation Payload and use the `{{WORKSTREAM}}` placeholder.
+
+#### Cross-Codespace Event Transport
+
+Events are transported between Codespaces via the `agent-events` orphan git branch:
+
+- **`node dashboard/lib/push-events.js --workstream <name>`** — Commits and force-pushes the workstream's event file to the `agent-events` branch. Called by lead agents after gates 3, 4, and 7.
+- **`node dashboard/lib/push-events.js --all`** — Pushes all local event files. Used by the architect after saving plans and delegation.
+- **`node dashboard/lib/push-events.js --all --wipe`** — Clears the remote branch first (used at session-start by architect).
+- **`node dashboard/lib/pull-events.js`** — Fetches the `agent-events` branch and copies all `events-*.jsonl` files to local `.agent-events/`. Used by the architect to monitor workstream progress.
+
+#### The `agent-events` Orphan Branch
+
+A git orphan branch named `agent-events` stores event files without polluting the main branch history. The branch is created automatically by `push-events.js` if it doesn't exist. Each workstream owns its event file exclusively — no merge conflicts.
+
+#### Continuous Monitoring
+
+Set `DASHBOARD_GIT_POLL=true` before starting the dashboard server to enable automatic 5-second polling that fetches workstream events from the `agent-events` branch. This keeps the dashboard updated in real time when workstreams run in separate Codespaces.
+
 ## Strict Delegation Protocol (MANDATORY)
 
 All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.

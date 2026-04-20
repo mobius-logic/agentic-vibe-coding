@@ -9,6 +9,7 @@ const path = require('path');
 
 const DEFAULT_EVENTS_DIR = path.resolve(__dirname, '..', '..', '.agent-events');
 const DEFAULT_EVENTS_FILE = path.join(DEFAULT_EVENTS_DIR, 'events.jsonl');
+const WORKSTREAM_RE = /^[a-z][a-z0-9-]*$/;
 
 /**
  * Append a structured event to the JSONL event log.
@@ -32,7 +33,14 @@ function logAgentEvent(opts) {
     throw new Error('logAgentEvent requires "agent" and "event" fields');
   }
 
-  const eventsFile = opts.eventsFile || DEFAULT_EVENTS_FILE;
+  if (opts.workstream !== undefined && !WORKSTREAM_RE.test(opts.workstream)) {
+    throw new Error(`Invalid workstream name "${opts.workstream}" — must match /^[a-z][a-z0-9-]*$/`);
+  }
+
+  const filename = opts.workstream
+    ? `events-${opts.workstream}.jsonl`
+    : 'events.jsonl';
+  const eventsFile = opts.eventsFile || path.join(DEFAULT_EVENTS_DIR, filename);
   const eventsDir = path.dirname(eventsFile);
 
   const entry = {
@@ -61,4 +69,4 @@ function logAgentEvent(opts) {
   return entry;
 }
 
-module.exports = { logAgentEvent, DEFAULT_EVENTS_FILE };
+module.exports = { logAgentEvent, DEFAULT_EVENTS_FILE, DEFAULT_EVENTS_DIR, WORKSTREAM_RE };

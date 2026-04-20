@@ -78,3 +78,62 @@ describe('emit-event.js CLI', () => {
     assert.equal(result.exitCode, 0);
   });
 });
+
+// --- logAgentEvent unit tests for workstream routing ---
+
+describe('logAgentEvent workstream routing', () => {
+  const { logAgentEvent } = require('../lib/log-event');
+
+  it('should route event to events-<workstream>.jsonl when workstream is present', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'emit-ws-'));
+    const eventsDir = path.join(tmpDir, '.agent-events');
+    fs.mkdirSync(eventsDir, { recursive: true });
+    const wsFile = path.join(eventsDir, 'events-backend.jsonl');
+
+    logAgentEvent({ agent: 'dev', event: 'spawned', workstream: 'backend', eventsFile: wsFile });
+    const content = fs.readFileSync(wsFile, 'utf8');
+    const evt = JSON.parse(content.trim());
+    assert.equal(evt.agent, 'dev');
+    assert.equal(evt.workstream, 'backend');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('should route event to events.jsonl when workstream is absent', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'emit-nows-'));
+    const eventsFile = path.join(tmpDir, 'events.jsonl');
+
+    logAgentEvent({ agent: 'dev', event: 'spawned', eventsFile });
+    assert.ok(fs.existsSync(eventsFile));
+    const content = fs.readFileSync(eventsFile, 'utf8');
+    const evt = JSON.parse(content.trim());
+    assert.equal(evt.agent, 'dev');
+    assert.equal(evt.workstream, undefined);
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('should throw on invalid workstream name', () => {
+    assert.throws(
+      () => logAgentEvent({ agent: 'dev', event: 'spawned', workstream: 'INVALID' }),
+      /Invalid workstream name/
+    );
+  });
+
+  it('should throw on workstream name with special characters', () => {
+    assert.throws(
+      () => logAgentEvent({ agent: 'dev', event: 'spawned', workstream: 'my_stream' }),
+      /Invalid workstream name/
+    );
+  });
+
+  it('should accept valid workstream names', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'emit-valid-'));
+    const eventsFile = path.join(tmpDir, 'events-my-stream.jsonl');
+
+    logAgentEvent({ agent: 'dev', event: 'spawned', workstream: 'my-stream', eventsFile });
+    assert.ok(fs.existsSync(eventsFile));
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+});

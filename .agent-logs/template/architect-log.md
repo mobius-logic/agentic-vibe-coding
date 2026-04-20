@@ -32,3 +32,32 @@
 - **Delegation Mode**: automated (invoked @frontend-lead directly)
 - **Status**: delegated / implementation complete on feature/frontend/dashboard-v2
 - **Test Results**: 42/42 passing (18 state + 9 emit-event + 15 server)
+
+## 2026-04-20 17:53:48 — Session Summary
+- **Project**: Multi-Workstream Dashboard Event Aggregation (template enhancement)
+- **Architecture Plan**: .plans/template/2026-04-20-171154-architecture-multi-workstream-events.md
+- **Architecture Style**: Additive enhancement to existing Node.js server + vanilla JS SPA
+- **Execution Mode**: sequential
+- **Launch Plan**: .plans/template/2026-04-20-171154-launch-plan-multi-workstream-events.md
+- **Feature Fingerprint**: multi-workstream-dashboard-events
+- **Workstreams Identified**:
+  - core-pipeline → @backend-lead (Wave 1)
+  - dashboard-ui → @frontend-lead (Wave 2)
+  - agent-definitions → @infra-lead (Wave 2)
+- **Decisions Made**:
+  - Per-workstream event files (events-<workstream>.jsonl) instead of single shared file
+  - Git orphan branch (agent-events) for cross-Codespace event transport
+  - push-events.js and pull-events.js CLIs for git-based event transport
+  - Multi-file watching in server.js with per-file byte offsets
+  - DASHBOARD_GIT_POLL=true opt-in for automatic cross-Codespace polling
+  - Workstream badges and filter toggle buttons in dashboard UI
+  - All agent definitions updated with --workstream flags and push-events.js calls
+  - Backward compatible — single-workstream mode works identically to before
+  - Same-machine parallel supported via per-workstream files on shared filesystem
+  - Cross-Codespace parallel supported via git orphan branch transport
+- **Open Questions**: None
+- **Delegation Mode**: automated (all 3 leads invoked directly)
+- **Status**: all 3 workstreams complete on feature/template/multi-workstream-events
+- **Test Results**: 73/74 passing (1 pre-existing Windows shell quoting issue in --todos test)
+- **Commits**: 28af75a (core pipeline), 4dd4d13 (dashboard UI), 277b828 (agent definitions)
+- **Total Changes**: 28 files changed, +1792/-128 lines

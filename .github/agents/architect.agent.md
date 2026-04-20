@@ -493,6 +493,11 @@ Once you know the plan path, re-emit with the plan reference:
 node dashboard/lib/emit-event.js architect session-start --plan ".plans/<file>.md"
 ```
 
+**Push session-start to remote** (clears the `agent-events` orphan branch for a fresh session):
+```
+node dashboard/lib/push-events.js --all --wipe
+```
+
 **Spawned** (run immediately after session-start):
 ```
 node dashboard/lib/emit-event.js architect spawned --parent ""
@@ -533,6 +538,11 @@ node dashboard/lib/emit-event.js architect plan-saved --plan ".plans/project/<fi
 node dashboard/lib/emit-event.js architect plan-saved --plan ".plans/project/<launch-plan>.md" --detail "Launch plan saved (mode: <mode>)"
 ```
 
+**Push events after saving plans** (ensures remote has latest architect events):
+```
+node dashboard/lib/push-events.js --all
+```
+
 **When you decompose into workstream briefs**:
 ```
 node dashboard/lib/emit-event.js architect task-started --task "Decomposing into workstream briefs" --taskIndex 2 --taskTotal 3
@@ -543,12 +553,49 @@ node dashboard/lib/emit-event.js architect task-started --task "Decomposing into
 node dashboard/lib/emit-event.js architect subagent-invoked --detail "Delegating to @backend-lead"
 ```
 
+**Push events after delegation** (ensures remote has latest architect events):
+```
+node dashboard/lib/push-events.js --all
+```
+
+**Check workstream progress** (pull events from all workstreams to see their status):
+```
+node dashboard/lib/pull-events.js
+```
+
 **Session end**:
 ```
 node dashboard/lib/emit-event.js architect session-complete --status done
 ```
 
 Emit events generously — every meaningful step should be logged so the dashboard reflects your real-time progress. If `dashboard/` does not exist in the project, skip this section.
+
+## Cross-Codespace Event Transport
+
+When workstreams run in separate Codespaces (parallel execution mode), events are transported via the `agent-events` orphan git branch.
+
+### Setting Up the Orphan Branch (Session Start)
+
+At the start of each session, ensure the `agent-events` orphan branch exists. The `push-events.js --wipe` call during session-start handles this automatically — it creates the orphan branch if it doesn't exist and clears any stale events from a previous session.
+
+### Monitoring Workstream Progress
+
+Use `pull-events.js` to fetch events from all workstreams into the local `.agent-events/` directory:
+```
+node dashboard/lib/pull-events.js
+```
+
+For continuous monitoring, set the `DASHBOARD_GIT_POLL=true` environment variable before starting the dashboard server. This enables automatic 5-second polling that fetches workstream events from the `agent-events` branch and updates the dashboard in real time.
+
+### Event Transport Summary
+
+| Script | When to Use | Example |
+|--------|-------------|----------|
+| `push-events.js --all --wipe` | Session start (architect only) | Clears remote + pushes architect events |
+| `push-events.js --all` | After saving plans, after delegation | Pushes all local event files |
+| `push-events.js --workstream <name>` | Lead agents at gates 3, 4, 7 | Pushes single workstream events |
+| `pull-events.js` | Check on workstream progress | Fetches all remote events locally |
+| `DASHBOARD_GIT_POLL=true` | Continuous monitoring | Auto-polls every 5 seconds |
 
 ## Constraints
 - DO NOT write application code — you design and delegate
