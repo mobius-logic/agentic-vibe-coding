@@ -70,7 +70,8 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
     - "Verdict" is "ALL PASS"
     - "Log Written" field is "yes"
 19. **Gate check**: Tester verdict is "ALL PASS"
-20. 🛑 **If tests fail**: Loop back to GATE 2 — invoke @developer to fix, then re-run GATE 3
+20. Push events to remote: `node dashboard/lib/push-events.js --workstream backend`
+21. 🛑 **If tests fail**: Loop back to GATE 2 — invoke @developer to fix, then re-run GATE 3
 
 #### GATE 4: Code Review (MANDATORY — cannot skip)
 21. Invoke `@code-reviewer` with the **Delegation Payload** including:
@@ -81,7 +82,8 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
     - "Verdict" is "APPROVE"
     - "Log Written" field is "yes"
 24. **Gate check**: Code reviewer verdict is "APPROVE"
-25. 🛑 **If "REQUEST CHANGES"**: Loop back to GATE 2 to fix issues, then re-run GATE 3 and GATE 4
+25. Push events to remote: `node dashboard/lib/push-events.js --workstream backend`
+26. 🛑 **If "REQUEST CHANGES"**: Loop back to GATE 2 to fix issues, then re-run GATE 3 and GATE 4
 
 #### GATE 5: Documentation (MANDATORY — cannot skip)
 26. Invoke `@docs-writer` with the **Delegation Payload** including:
@@ -109,7 +111,8 @@ Before committing, verify every item:
 30. Commit all changes with descriptive message: `<type>(backend): <description>`
 31. Write your own session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
 32. Emit dashboard event: `session-complete --status done`
-33. Report to human with full summary including all subagent reports
+33. Push events to remote: `node dashboard/lib/push-events.js --workstream backend`
+34. Report to human with full summary including all subagent reports
 
 ### Delegation Payload Format
 
@@ -120,10 +123,13 @@ Every time you invoke a subagent, you MUST pass this structured context:
 - **Plan Reference**: <path to .plans/ file>
 - **Branch**: <current feature branch name>
 - **Lead Agent**: backend-lead
+- **Workstream**: backend
 - **Task**: <specific task description>
 - **Acceptance Criteria**: <what "done" looks like>
 - **Files to Create/Modify**: <list of file paths>
 - **Context**: <any additional context or dependencies>
+
+**IMPORTANT**: Always include `--workstream backend` in the delegation payload. Subagents MUST use this value in all their `emit-event.js` calls.
 ```
 
 ## Agent Memory Log
@@ -166,49 +172,51 @@ Before starting work, READ your memory log to review prior sessions and avoid re
 ## Agent Monitor Events (MANDATORY)
 You MUST emit dashboard events at every key milestone so the human can track your progress in real time on the Agent Monitor Dashboard. Run these commands in the terminal:
 
+**IMPORTANT**: All `emit-event.js` calls MUST include `--workstream backend` to route events to the correct per-workstream event file.
+
 **Session start** (run FIRST thing when you begin):
 ```
-node dashboard/lib/emit-event.js backend-lead spawned --parent "architect"
+node dashboard/lib/emit-event.js backend-lead spawned --parent "architect" --workstream backend
 ```
 
 **When reasoning/analyzing** (when planning execution, analyzing plan, preparing delegation):
 ```
-node dashboard/lib/emit-event.js backend-lead thinking --detail "<brief one-line summary of current reasoning>"
+node dashboard/lib/emit-event.js backend-lead thinking --detail "<brief one-line summary of current reasoning>" --workstream backend
 ```
 
 **When updating task list** (after using manage_todo_list):
 ```
-node dashboard/lib/emit-event.js backend-lead todo-update --todos '<JSON array of {id, title, status}>'
+node dashboard/lib/emit-event.js backend-lead todo-update --todos '<JSON array of {id, title, status}>' --workstream backend
 ```
 
 **When you read/load a plan**:
 ```
-node dashboard/lib/emit-event.js backend-lead plan-loaded --plan ".plans/<filename>.md" --taskTotal <N>
+node dashboard/lib/emit-event.js backend-lead plan-loaded --plan ".plans/<filename>.md" --taskTotal <N> --workstream backend
 ```
 
 **When you create a feature branch**:
 ```
-node dashboard/lib/emit-event.js backend-lead branch-created --branch "feature/backend/<name>"
+node dashboard/lib/emit-event.js backend-lead branch-created --branch "feature/backend/<name>" --workstream backend
 ```
 
 **When you START each task** (run before delegating to subagent):
 ```
-node dashboard/lib/emit-event.js backend-lead task-started --task "<description>" --taskIndex <N> --taskTotal <total>
+node dashboard/lib/emit-event.js backend-lead task-started --task "<description>" --taskIndex <N> --taskTotal <total> --workstream backend
 ```
 
 **When each task is COMPLETED** (run after subagent returns):
 ```
-node dashboard/lib/emit-event.js backend-lead task-completed --task "<description>" --taskIndex <N> --taskTotal <total>
+node dashboard/lib/emit-event.js backend-lead task-completed --task "<description>" --taskIndex <N> --taskTotal <total> --workstream backend
 ```
 
 **When you invoke a subagent**:
 ```
-node dashboard/lib/emit-event.js backend-lead subagent-invoked --detail "@developer: <task>"
+node dashboard/lib/emit-event.js backend-lead subagent-invoked --detail "@developer: <task>" --workstream backend
 ```
 
 **Session end**:
 ```
-node dashboard/lib/emit-event.js backend-lead session-complete --status done
+node dashboard/lib/emit-event.js backend-lead session-complete --status done --workstream backend
 ```
 
 Emit events generously — every meaningful step should be logged so the dashboard reflects your real-time progress. If `dashboard/` does not exist in the project, skip this section.
