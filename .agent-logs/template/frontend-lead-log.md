@@ -57,3 +57,23 @@
   - `server.js` has two code paths for event processing (fs.watch + setInterval fallback) — both must be updated in sync
   - The `if (!this.planPath)` pattern was wrong for planPath because it prevented updates after the first value was set
 - **Status**: done
+
+## 2026-04-20 17:45:00 — Session Summary
+- **Architecture/Plan Reference**: .plans/template/2026-04-20-171154-architecture-multi-workstream-events.md
+- **Branch**: feature/template/multi-workstream-events
+- **Commit**: 4dd4d13
+- **Approved Execution Plan**:
+  1. Modify `dashboard/public/index.html` — Add workstream-filters container div
+  2. Modify `dashboard/public/styles.css` — Add workstream badge, filter, and color styles
+  3. Modify `dashboard/public/graph.js` — Add workstream badge rendering and filtering on graph nodes
+  4. Modify `dashboard/public/app.js` — Add workstream state management, filter toggle, detail panel badge, events filtering
+- **Tasks Completed**:
+  - Added `<div id="workstream-filters">` container in index.html after header
+  - Added CSS for `.workstream-badge`, `.workstream-filter-btn`, `.workstream-filter-btn.active`, workstream color classes (backend=#4a9eff, frontend=#4aff8a, infra=#ffaa4a, default=#aaaaaa)
+  - Added workstream colors to GRAPH_CONFIG, workstream badge rendering on SVG nodes, node filtering by workstream in graph.js
+  - Added `workstreamFilter`, `workstreams` to appState; `updateWorkstreams()`, `toggleWorkstreamFilter()`, `renderWorkstreamFilters()`, `getWorkstreamColorClass()` functions; workstream badge in detail panel; event bar filtering and workstream attribution in app.js
+- **Files Changed**: dashboard/public/index.html, dashboard/public/styles.css, dashboard/public/graph.js, dashboard/public/app.js
+- **Fixes Applied**: None — clean implementation
+- **Subagents Invoked**: None (single-agent execution mode, human pre-approved automated execution)
+- **Lessons Learned**: Pre-existing test failure in emit-event.test.js (--todos JSON parsing on Windows) is unrelated to UI changes.
+- **Status**: done
