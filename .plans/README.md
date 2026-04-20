@@ -22,14 +22,15 @@ Plans are separated into two subdirectories:
 
 | Directory | Purpose | Synced from upstream? | Protected by `merge=ours`? |
 |-----------|---------|----------------------|---------------------------|
-| `template/` | Plans for the agentic-vibe-coding template infrastructure (dashboard, agents, protocols) | **Yes** — updated when you run `sync-template` | No |
+| `template/` | Plans for the agentic-vibe-coding template infrastructure (dashboard, agents, protocols) | **Template repo only** — removed from project repos during sync | Yes (merge=ours + sync cleanup) |
 | `project/` | Architecture and launch plans for the project built with this template | **No** — never overwritten by template sync | **Yes** |
 
 ### Why the separation?
 
-When a project is created from this template and later syncs upstream updates, the template's own
-plans (agent protocols, dashboard features) should be updated. But the project's architecture and
-feature plans must never be overwritten. The `template/` vs `project/` split enforces this boundary.
+**Template context isolation**: Template plans exist only in the template repo. Project repos
+only contain `.plans/project/`. This prevents template context from confusing project agents,
+just as project plans don't exist in the template repo to confuse template agents. The sync
+scripts automatically remove any template content that comes through during a merge.
 
 ## Naming Convention
 

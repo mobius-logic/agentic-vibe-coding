@@ -448,19 +448,19 @@ overwriting their project-specific plans, logs, or documentation.
 └──────────────────────────────┘
 ```
 
-| What syncs (from template) | What is protected (project-specific) |
+| What syncs (from template) | What is protected / removed (project-specific) |
 |---|---|
-| `.github/agents/` | `.plans/project/` |
-| `.github/hooks/` | `.agent-logs/project/` |
-| `.github/prompts/` | `.agent-events/` |
-| `.github/instructions/` | `README.md` |
-| `.github/copilot-instructions.md` | All project source code |
-| `.devcontainer/` | |
-| `.plans/template/` | |
-| `.agent-logs/template/` | |
-| `dashboard/` | |
+| `.github/agents/` | `.plans/project/` (protected) |
+| `.github/hooks/` | `.agent-logs/project/` (protected) |
+| `.github/prompts/` | `.agent-events/` (protected) |
+| `.github/instructions/` | `README.md` (protected) |
+| `.github/copilot-instructions.md` | All project source code (protected) |
+| `.devcontainer/` | `.plans/template/` (removed after sync) |
+| `dashboard/` | `.agent-logs/template/` (removed after sync) |
 | `TEMPLATE-GUIDE.md` | |
 | `scripts/` | |
+
+> **Template context isolation**: Template plans and logs (`.plans/template/`, `.agent-logs/template/`) are automatically removed from project repos during sync. This ensures project agents only see project-specific context — the same way the template repo only sees template context. The sync scripts handle this in step 6.
 
 ### One-Time Setup (Org Admin)
 
@@ -508,7 +508,8 @@ The sync script:
 1. Adds or verifies the `upstream` remote
 2. Configures the `ours` merge driver to protect project-specific files
 3. Fetches and merges the latest template changes
-4. Leaves `.plans/project/`, `.agent-logs/project/`, and `README.md` untouched (template plans and logs in `.plans/template/` and `.agent-logs/template/` ARE updated)
+4. Leaves `.plans/project/`, `.agent-logs/project/`, and `README.md` untouched
+5. Removes `.plans/template/` and `.agent-logs/template/` content that came through the merge (template context should only exist in the template repo)
 
 > **Codespace note:** Both scripts auto-detect GitHub Codespaces and verify
 > access to the upstream template repo before fetching. The default Codespace
@@ -536,12 +537,18 @@ are automatically protected.
 
 ### How File Protection Works
 
-The `.gitattributes` file uses Git's merge driver system:
+The `.gitattributes` file uses Git's merge driver system to protect project-specific
+paths and isolate template context:
 
 ```gitattributes
+# Protect project-specific content during sync
 .plans/project/**        merge=ours
 .agent-logs/project/**   merge=ours
 README.md                merge=ours
+
+# Isolate template context (sync scripts remove new files in step 6)
+.plans/template/**       merge=ours
+.agent-logs/template/**  merge=ours
 ```
 
 When `merge=ours` is configured (`git config merge.ours.driver true` — the sync scripts

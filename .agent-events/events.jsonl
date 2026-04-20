@@ -4,3 +4,8 @@
 {"ts":"2026-04-19T23:30:15.523Z","agent":"agent1","event":"spawned","parent":"architect"}
 {"ts":"2026-04-19T23:30:15.926Z","agent":"agent1","event":"task-started","task":"Build","taskIndex":2,"taskTotal":10}
 {"ts":"2026-04-19T23:30:16.058Z","agent":"arch","event":"session-start","plan":".plans/test.md"}
+{"ts":"2026-04-20T00:02:59.411Z","agent":"test-agent","event":"test-event"}
+{"ts":"2026-04-20T00:02:59.532Z","agent":"agent1","event":"branch-created","branch":"feature/test"}
+{"ts":"2026-04-20T00:02:59.672Z","agent":"agent1","event":"spawned","parent":"architect"}
+{"ts":"2026-04-20T00:03:00.066Z","agent":"agent1","event":"task-started","task":"Build","taskIndex":2,"taskTotal":10}
+{"ts":"2026-04-20T00:03:00.198Z","agent":"arch","event":"session-start","plan":".plans/test.md"}

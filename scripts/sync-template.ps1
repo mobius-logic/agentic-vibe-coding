@@ -12,8 +12,10 @@
 #   2. Configures the "ours" merge driver (keeps local project files safe)
 #   3. Fetches the latest template changes
 #   4. Merges upstream/main into the current branch
-#   5. Project-specific paths (.plans/, .agent-logs/, README.md) are protected
-#      by .gitattributes merge=ours — they will NOT be overwritten
+#   5. Project-specific paths (.plans/project/, .agent-logs/project/, README.md)
+#      are protected by .gitattributes merge=ours — they will NOT be overwritten
+#   6. Removes any template plans/logs that came through the merge
+#      (template context should not exist in project repos)
 #
 # Safe to run repeatedly — idempotent.
 # ──────────────────────────────────────────────────────────────────────────────
@@ -176,7 +178,7 @@ git merge "$UpstreamRemote/$UpstreamBranch" `
 
 if ($LASTEXITCODE -ne 0) {
     Write-Warn "Merge conflicts detected. Resolve them, then commit."
-    Write-Warn "Project-specific files (.plans/, .agent-logs/, README.md) should be safe"
+    Write-Warn "Project-specific files (.plans/project/, .agent-logs/project/, README.md) should be safe"
     Write-Warn "thanks to .gitattributes merge=ours."
     Write-Warn ""
     Write-Warn "After resolving conflicts:"
@@ -185,13 +187,40 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+# ── 6. Remove template context (should not exist in project repos) ───────────
+# Template plans and logs belong only in the template repo. The merge may have
+# brought new files that merge=ours couldn't block (new files have no conflict).
+# Remove them so project agents are not confused by template context.
+$templateDirs = @(".plans/template", ".agent-logs/template")
+$cleaned = $false
+foreach ($dir in $templateDirs) {
+    if (Test-Path $dir) {
+        $files = Get-ChildItem -Path $dir -Recurse -File | Where-Object { $_.Name -ne "README.md" }
+        if ($files.Count -gt 0) {
+            Write-Info "Removing template content from $dir/ (not needed in project repos)..."
+            foreach ($f in $files) {
+                git rm --quiet $f.FullName 2>$null
+            }
+            $cleaned = $true
+        }
+    }
+}
+if ($cleaned) {
+    git commit --no-edit -m "chore(template-sync): remove template plans/logs from project repo"
+    Write-Info "Cleaned up template-specific content."
+}
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 Write-Info ""
 Write-Info "Synced with upstream template."
 Write-Info "  Protected paths (kept your version):"
-Write-Info "    .plans/**"
-Write-Info "    .agent-logs/**"
+Write-Info "    .plans/project/**"
+Write-Info "    .agent-logs/project/**"
 Write-Info "    README.md"
+Write-Info ""
+Write-Info "  Removed (template context, not needed in project repos):"
+Write-Info "    .plans/template/**"
+Write-Info "    .agent-logs/template/**"
 Write-Info ""
 Write-Info "  Updated paths (from template):"
 Write-Info "    .github/agents/"

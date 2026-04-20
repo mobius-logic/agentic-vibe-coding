@@ -22,7 +22,7 @@ Logs are separated into two subdirectories:
 
 | Directory | Purpose | Synced from upstream? | Protected by `merge=ours`? |
 |-----------|---------|----------------------|---------------------------|
-| `template/` | Logs from agents working on the template itself (dashboard, agents, protocols) | **Yes** — updated when you run `sync-template` | No |
+| `template/` | Logs from agents working on the template itself (dashboard, agents, protocols) | **Template repo only** — removed from project repos during sync | Yes (merge=ours + sync cleanup) |
 | `project/` | Logs from agents working on the project built with this template | **No** — never overwritten by template sync | **Yes** |
 
 ### Which directory to use?
