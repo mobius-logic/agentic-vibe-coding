@@ -132,6 +132,8 @@ Set `DASHBOARD_GIT_POLL=true` before starting the dashboard server to enable aut
 All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.
 Leads MUST delegate to subagents — they must NEVER write code, run tests, review code, or write docs themselves.
 
+**Tool Enforcement**: Lead agents do NOT have the `edit` tool — they physically cannot create or modify files. This is by design. All file creation/modification must be delegated to the appropriate sub-agent (`@developer`, `@tester`, `@docs-writer`). Leads use the `execute` tool (terminal commands) only for git operations, dashboard events, and appending their own session logs.
+
 | Gate | Required Action | Cannot Proceed Until |
 |------|----------------|---------------------|
 | 0 | Plan Approval | Human approves execution plan |
