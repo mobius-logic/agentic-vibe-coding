@@ -61,3 +61,25 @@
 - **Test Results**: 73/74 passing (1 pre-existing Windows shell quoting issue in --todos test)
 - **Commits**: 28af75a (core pipeline), 4dd4d13 (dashboard UI), 277b828 (agent definitions)
 - **Total Changes**: 28 files changed, +1792/-128 lines
+
+## 2026-04-24 22:49:18 — Session Summary
+- **Project**: Non-Coder Agent Tool Enforcement (template enhancement)
+- **Architecture Plan**: .plans/template/2026-04-24-223237-architecture-non-coder-tool-enforcement.md
+- **Architecture Style**: Documentation/configuration change (agent definitions + project standards)
+- **Execution Mode**: sequential
+- **Launch Plan**: .plans/template/2026-04-24-223237-launch-plan-non-coder-tool-enforcement.md
+- **Feature Fingerprint**: non-coder-tool-enforcement
+- **Workstreams Identified**:
+  - template-enforcement → @infra-lead (Wave 1)
+- **Decisions Made**:
+  - Added FORBIDDEN ACTIONS + HARD DELEGATION CONSTRAINT sections to architect.agent.md (matching lead agent pattern)
+  - Added FORBIDDEN ACTIONS + HARD DELEGATION CONSTRAINT sections to code-reviewer.agent.md
+  - Expanded Tool Enforcement section in copilot-instructions.md with Agent Role Matrix table covering all agent categories
+  - Added section 7 (Non-Coder Agent Tool Restrictions) to strict-delegation-protocol.md
+  - Architect may only create/edit files in `.plans/` and own session log via execute
+  - Code-reviewer execute restricted to git diff, read-only inspection, dashboard events, and own log
+  - General rule: only @developer, @tester, and @docs-writer may create or modify repo files
+- **Open Questions**: Pre-existing test failure in emit-event --todos parsing (unrelated, 73/74 pass)
+- **Delegation Mode**: automated (invoked @infra-lead which delegated to @developer)
+- **Status**: implementation complete on feature/template/non-coder-tool-enforcement
+- **Test Results**: 73/74 pass (1 pre-existing failure unrelated to changes)

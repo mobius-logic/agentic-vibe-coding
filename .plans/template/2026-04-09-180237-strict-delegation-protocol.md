@@ -169,6 +169,24 @@ When the architect delegates to a lead (Phase 5), the lead MUST:
 3. Present its execution plan to the human for approval
 4. Reference the architecture plan in all logs and subagent delegations
 
+### 7. Non-Coder Agent Tool Restrictions
+
+The delegation enforcement extends beyond leads to ALL non-coding agents:
+
+**Architect**:
+- Has `execute` but NOT `edit`
+- `execute` is restricted to: git read commands, dashboard events, timestamps, environment detection, reading files, and creating/editing ONLY in `.plans/` and own session log
+- Must delegate ALL implementation work to leads, who delegate to coders
+- The ONLY files the architect may create/edit are in `.plans/` and `.agent-logs/`
+
+**Code Reviewer**:
+- Has `execute` but NOT `edit`
+- `execute` is restricted to: `git diff`, `git log`, `git show`, reading files, dashboard events, and own session log
+- Must NEVER modify any file — produces review verdicts only
+- If code needs changes, returns "REQUEST CHANGES" verdict to the lead
+
+**General Rule**: Only `@developer`, `@tester`, and `@docs-writer` may create or modify files in the repository. All other agents (architect, leads, code-reviewer) operate in a plan/delegate/review capacity only.
+
 ## Files to Modify
 
 | File | Change |

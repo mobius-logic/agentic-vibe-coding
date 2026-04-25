@@ -132,7 +132,16 @@ Set `DASHBOARD_GIT_POLL=true` before starting the dashboard server to enable aut
 All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.
 Leads MUST delegate to subagents — they must NEVER write code, run tests, review code, or write docs themselves.
 
-**Tool Enforcement**: Lead agents do NOT have the `edit` tool — they physically cannot create or modify files. This is by design. All file creation/modification must be delegated to the appropriate sub-agent (`@developer`, `@tester`, `@docs-writer`). Leads use the `execute` tool (terminal commands) only for git operations, dashboard events, and appending their own session logs.
+**Tool Enforcement**: Only coding agents (`@developer`, `@tester`, `@docs-writer`) have the `edit` tool and may create or modify files. All other agents — including `@architect`, all leads, and `@code-reviewer` — are **physically prevented** from editing files via tool restrictions.
+
+| Agent Category | `edit` Tool | `execute` Scope | File Permissions |
+|----------------|------------|-----------------|------------------|
+| **Architect** (`@architect`) | ❌ No | git read, dashboard events, timestamps, own log, `.plans/` files only | Create/edit `.plans/` and own session log only |
+| **Leads** (`@backend-lead`, `@frontend-lead`, `@infra-lead`) | ❌ No | git ops, dashboard events, own log only | Own session log only |
+| **Code Reviewer** (`@code-reviewer`) | ❌ No | git diff, read-only inspection, own log only | Own session log only |
+| **Coders** (`@developer`, `@tester`, `@docs-writer`) | ✅ Yes | Full terminal access | Full file creation/modification |
+
+Non-coding agents must NEVER use the `execute` tool to create, edit, or delete application code, test files, config files, or documentation. The `execute` tool is restricted to: git operations, dashboard event emission, timestamp retrieval, and appending to the agent's own session log.
 
 | Gate | Required Action | Cannot Proceed Until |
 |------|----------------|---------------------|
