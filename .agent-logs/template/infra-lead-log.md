@@ -114,3 +114,23 @@
   - Windows PowerShell doesn't have grep â€” use Select-String instead
   - Pre-existing test failure on --todos flag due to Windows single-quote handling â€” not caused by these changes
 - **Status**: done
+
+## 2026-04-25 22:44:26 — Session Summary
+- **Architecture/Plan Reference**: .plans/template/2026-04-25-222808-architecture-subagent-fallback.md
+- **Branch**: feature/template/subagent-fallback
+- **Commit**: 173951d
+- **Execution Mode**: fallback-self-execution (subagent unavailable) — Tier 2, all roles performed by lead
+- **Approved Execution Plan**:
+  1. Edit backend-lead.agent.md — add edit tool, Step 0, Edit Tool conditional access
+  2. Edit frontend-lead.agent.md — same changes adapted for frontend
+  3. Edit infra-lead.agent.md — same changes adapted for infra
+  4. Edit architect.agent.md — add Pre-Session capability check (Tier 1 only)
+  5. Edit copilot-instructions.md — add Subagent Unavailable Fallback section
+  6. Edit strict-delegation-protocol.md — add section 8
+  7. Run tests — verify no regressions
+- **Tasks Completed**:
+  - All 7 tasks completed
+- **Files Changed**: backend-lead.agent.md, frontend-lead.agent.md, infra-lead.agent.md, architect.agent.md, copilot-instructions.md, strict-delegation-protocol.md
+- **Subagents Invoked**: None (Tier 2 self-execution)
+- **Lessons Learned**: PowerShell here-strings with -replace work well for surgical markdown insertions
+- **Status**: done

@@ -83,3 +83,24 @@
 - **Delegation Mode**: automated (invoked @infra-lead which delegated to @developer)
 - **Status**: implementation complete on feature/template/non-coder-tool-enforcement
 - **Test Results**: 73/74 pass (1 pre-existing failure unrelated to changes)
+
+## 2026-04-25 22:28:08 — Session Summary
+- **Project**: Subagent Unavailable Fallback Protocol (template enhancement)
+- **Architecture Plan**: .plans/template/2026-04-25-222808-architecture-subagent-fallback.md
+- **Architecture Style**: Documentation/configuration + minor dashboard code change
+- **Execution Mode**: sequential
+- **Launch Plan**: .plans/template/2026-04-25-222808-launch-plan-subagent-fallback.md
+- **Feature Fingerprint**: subagent-unavailable-fallback
+- **Workstreams Identified**:
+  - agent-definitions -> @infra-lead (Wave 1, session 1)
+  - dashboard-ui -> @frontend-lead (Wave 1, session 2)
+- **Decisions Made**:
+  - Tiered fallback: Tier 1 (human-relay) + Tier 2 (self-execution with blanket approval)
+  - Upfront detection at session start (before Gate 0)
+  - Add edit tool to leads conditionally (YAML permanent, instructions restrict to Tier 2)
+  - Separate logs per role in Tier 2 (developer-log, tester-log, code-reviewer-log, docs-writer-log)
+  - New fallback-mode dashboard event with tier-1/tier-2 detail
+  - Architect only supports Tier 1 (no self-execution)
+- **Open Questions**: None
+- **Delegation Mode**: manual (payloads prepared for copy-paste)
+- **Status**: approved / ready for delegation
