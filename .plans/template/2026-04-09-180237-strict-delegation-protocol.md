@@ -187,6 +187,29 @@ The delegation enforcement extends beyond leads to ALL non-coding agents:
 
 **General Rule**: Only `@developer`, `@tester`, and `@docs-writer` may create or modify files in the repository. All other agents (architect, leads, code-reviewer) operate in a plan/delegate/review capacity only.
 
+### 8. Subagent Unavailable Fallback Protocol
+
+The `runSubagent` tool may not be available in all VS Code Copilot Chat sessions. When a lead or the architect detects this limitation, the following tiered fallback applies:
+
+**Detection**: At session start (before Gate 0), the agent checks whether `runSubagent` is available. If unavailable, it emits a `fallback-mode` dashboard event and presents the human with tier options.
+
+**Tier 1 — Human-Relay**:
+- Agent prepares full Delegation Payloads (same format as normal mode)
+- Human pastes payloads into separate agent chat sessions and relays Completion Reports back
+- Agent processes reports exactly as in normal mode
+- All gates still apply; no gates may be skipped
+
+**Tier 2 — Self-Execution** (requires human's explicit blanket approval):
+- Agent performs all subagent work itself using the `edit` tool
+- Agent follows the 7-gate sequence exactly, performing each role in order
+- Agent writes separate logs for each role (developer-log, tester-log, code-reviewer-log, docs-writer-log)
+- Each log includes: `Execution Mode: fallback-self-execution (subagent unavailable)`
+- Agent's own session log notes: "Fallback self-execution mode — all roles performed by lead"
+
+**Architect exception**: The architect only supports Tier 1. It must never self-execute implementation, testing, review, or documentation work.
+
+**Edit tool access**: Lead agents have the `edit` tool in their tool list but are FORBIDDEN from using it in normal delegation mode. The `edit` tool may ONLY be used in Tier 2 fallback mode after human approval.
+
 ## Files to Modify
 
 | File | Change |

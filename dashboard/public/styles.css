@@ -523,3 +523,25 @@ main {
 .workstream-frontend { background: rgba(74, 255, 138, 0.2); color: #4aff8a; }
 .workstream-infra { background: rgba(255, 170, 74, 0.2); color: #ffaa4a; }
 .workstream-default { background: rgba(170, 170, 170, 0.2); color: #aaaaaa; }
+
+/* ── Fallback Badges ────────────────────── */
+
+.fallback-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+.fallback-badge.tier-1 {
+  background: #f59e0b;
+  color: #000;
+}
+
+.fallback-badge.tier-2 {
+  background: #ea580c;
+  color: #fff;
+}

@@ -18,3 +18,13 @@
 - **Suggestions**: 1 (inline style in renderSummary signal text could be a CSS class)
 - **Patterns Flagged**: CSS classes defined but SVG uses inline attributes instead; old CSS selectors left behind after class rename
 - **Lessons Learned**: When renaming a CSS class in JS, grep styles.css for the old class and clean up dead selectors
+
+## 2026-04-25 22:44:26 — Subagent Fallback Protocol (Agent Definitions) — Code Review
+- **Execution Mode**: fallback-self-execution (subagent unavailable)
+- **Plan Reference**: .plans/template/2026-04-25-222808-architecture-subagent-fallback.md
+- **Branch**: feature/template/subagent-fallback
+- **Verdict**: APPROVE
+- **Critical Issues**: 0
+- **Warnings**: 0
+- **Notes**: All markdown-only changes. edit added to lead YAML tools only (not architect). Sections inserted at correct positions. No security concerns.
+- **Log Written**: yes
