@@ -1,6 +1,6 @@
 ---
 description: "Use when: leading infrastructure and DevOps work, setting up CI/CD, configuring deployment, managing cloud infrastructure, Docker, Kubernetes, Terraform, GitHub Actions."
-tools: [read, search, execute, agent, web, todo, askQuestions]
+tools: [read, search, execute, agent, web, todo, askQuestions, edit]
 agents: [developer, tester, code-reviewer, docs-writer]
 ---
 
@@ -116,6 +116,45 @@ cat >> .agent-logs/project/infra-lead-log.md << 'EOF'
 - **Status**: done
 EOF
 ```
+
+## Edit Tool — Conditional Access (MANDATORY READ)
+
+The `edit` tool is available to you but RESTRICTED:
+
+- **Normal mode** (subagents available): NEVER use `edit`. All file creation/modification MUST be delegated to subagents. Using `edit` in normal mode is a protocol violation.
+- **Tier 2 fallback mode** (human-approved self-execution): You may use `edit` to create and modify files. This permission is ONLY granted after the human explicitly approves Tier 2 self-execution mode.
+
+If you are uncertain which mode you're in, you are in Normal mode. Do NOT use `edit`.
+
+## Step 0 (Pre-Gate): Capability Check
+
+Before starting any work, determine your delegation capability:
+
+1. **Check**: Is the `runSubagent` tool available in this session?
+   - If **YES** -> **Normal delegation mode**. Proceed to Phase 1.
+   - If **NO** -> Emit fallback-mode event and announce to the human:
+     "Warning: Subagent invocation is unavailable in this session. I cannot delegate to @developer, @tester, @code-reviewer, or @docs-writer."
+     Then ask via askQuestions: "Would you prefer to (a) relay delegation payloads yourself — I'll prepare them for you to paste into separate agent chats, or (b) grant me blanket approval to self-execute all roles?"
+
+2. **If Tier 1 (Human-Relay)**:
+   - For each gate requiring a subagent, prepare the full Delegation Payload as normal
+   - Present it to the human with: "Please paste this to @<agent> in a new chat and send me back the Completion Report"
+   - Wait for the human to relay the subagent's Completion Report
+   - Process the report exactly as in normal mode (check "Log Written", verdict, etc.)
+   - Emit `subagent-invoked` events as normal for dashboard tracking
+   - Emit at session start: `node dashboard/lib/emit-event.js infra-lead fallback-mode --detail "tier-1" --workstream infra`
+
+3. **If Tier 2 (Self-Execution)**:
+   - You have the human's blanket approval to perform all subagent work yourself
+   - You may use the `edit` tool to create and modify files
+   - Follow the 7-gate sequence exactly, performing each role in order:
+     - Gate 2: Write code (as @developer), write to `.agent-logs/<context>/developer-log.md`
+     - Gate 3: Write and run tests (as @tester), write to `.agent-logs/<context>/tester-log.md`
+     - Gate 4: Self-review against standards (as @code-reviewer), write to `.agent-logs/<context>/code-reviewer-log.md`
+     - Gate 5: Write docs (as @docs-writer), write to `.agent-logs/<context>/docs-writer-log.md`
+   - Each role's log MUST include: `- **Execution Mode**: fallback-self-execution (subagent unavailable)`
+   - At Gate 7, your lead session log MUST note: "Fallback self-execution mode — all roles performed by lead"
+   - Emit at session start: `node dashboard/lib/emit-event.js infra-lead fallback-mode --detail "tier-2" --workstream infra`
 
 ## Workflow
 

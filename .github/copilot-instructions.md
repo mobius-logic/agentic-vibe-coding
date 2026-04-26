@@ -163,6 +163,24 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 - NEVER skip `@tester`, `@code-reviewer`, or `@docs-writer` â€” all three are mandatory
 - All agents MUST write session logs to `.agent-logs/project/` (or `.agent-logs/template/`) and emit dashboard events
 
+## Subagent Unavailable Fallback
+
+The `runSubagent` tool may not be available in all VS Code Copilot Chat sessions. When this occurs, delegating agents (leads and architect) follow a tiered fallback:
+
+| Tier | Mode | Description |
+|------|------|-------------|
+| Normal | runSubagent delegation | Standard protocol — leads invoke subagents |
+| Tier 1 | Human-relay | Lead prepares delegation payloads for human to paste into separate agent chats |
+| Tier 2 | Self-execution | Lead performs all subagent work itself (requires human's explicit blanket approval) |
+
+**Detection**: Leads check for runSubagent availability at session start (Step 0, before Gate 0).
+
+**Tier 2 constraints**: Even in self-execution mode, leads MUST follow the 7-gate sequence, write separate logs per role (developer-log, tester-log, code-reviewer-log, docs-writer-log), and note `Execution Mode: fallback-self-execution` in each log.
+
+**Dashboard**: Leads emit a `fallback-mode` event with detail `tier-1` or `tier-2` so the dashboard shows when fallback is active.
+
+**Architect**: Only supports Tier 1 (manual delegation payloads). The architect must never self-execute implementation work.
+
 ## Collaboration
 - Each workstream operates on its own feature branch
 - Use pull requests for integration to `main`

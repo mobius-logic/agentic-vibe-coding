@@ -54,6 +54,18 @@ Plans are separated into two directories:
 
 ## Workflow
 
+### Pre-Session: Lead Delegation Capability Check
+
+Before starting Phase 0, determine your delegation capability:
+
+1. **Check**: Is the `runSubagent` tool available in this session?
+   - If **YES** -> Normal mode. You can invoke leads directly in Phase 6 if instructed.
+   - If **NO** -> You are in **manual delegation mode** only.
+     Inform the human: "Subagent invocation is unavailable. I will prepare complete delegation payloads for each lead. You will need to paste them into separate agent chat sessions."
+     Emit: `node dashboard/lib/emit-event.js architect fallback-mode --detail "tier-1"`
+
+Note: The architect does NOT support Tier 2 self-execution. The architect's role is design and planning — it must NEVER write application code, tests, or documentation regardless of tool availability. If leads also cannot invoke subagents, each lead will independently detect this and offer their own Tier 1/Tier 2 choice to the human.
+
 ### Phase 0: Plan Memory Refresh (MANDATORY â€” Run First)
 
 Before doing ANYTHING else, you MUST refresh your memory by reading all existing plans. This ensures continuity across sessions and enables reproducible outputs.
