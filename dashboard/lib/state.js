@@ -146,6 +146,11 @@ class SessionState {
         this._setAgentField(evt.agent, 'thinkingSummary', evt.detail || 'Asked a question');
         break;
 
+      case 'fallback-mode':
+        this._setAgentField(evt.agent, 'fallbackMode', evt.detail || 'unknown');
+        this._setAgentField(evt.agent, 'status', 'active');
+        break;
+
       default:
         break;
     }

@@ -288,4 +288,40 @@ describe('SessionState', () => {
     assert.equal(s.agents.dev.workstream, null);
     assert.deepEqual(state.getWorkstreams(), []);
   });
+
+  // --- Fallback-mode tests ---
+
+  describe('fallback-mode events', () => {
+    it('should set agent fallbackMode to tier-1 when detail is tier-1', () => {
+      const state = new SessionState();
+      state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'backend-lead', event: 'spawned' });
+      state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'backend-lead', event: 'fallback-mode', detail: 'tier-1' });
+      const s = state.getState();
+      assert.equal(s.agents['backend-lead'].fallbackMode, 'tier-1');
+    });
+
+    it('should set agent fallbackMode to tier-2 when detail is tier-2', () => {
+      const state = new SessionState();
+      state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'backend-lead', event: 'spawned' });
+      state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'backend-lead', event: 'fallback-mode', detail: 'tier-2' });
+      const s = state.getState();
+      assert.equal(s.agents['backend-lead'].fallbackMode, 'tier-2');
+    });
+
+    it('should set agent status to active on fallback-mode event', () => {
+      const state = new SessionState();
+      state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'backend-lead', event: 'spawned' });
+      state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'backend-lead', event: 'fallback-mode', detail: 'tier-2' });
+      const s = state.getState();
+      assert.equal(s.agents['backend-lead'].status, 'active');
+    });
+
+    it('should default fallbackMode to unknown when detail is missing', () => {
+      const state = new SessionState();
+      state.processEvent({ ts: '2026-01-01T00:00:00Z', agent: 'backend-lead', event: 'spawned' });
+      state.processEvent({ ts: '2026-01-01T00:01:00Z', agent: 'backend-lead', event: 'fallback-mode' });
+      const s = state.getState();
+      assert.equal(s.agents['backend-lead'].fallbackMode, 'unknown');
+    });
+  });
 });

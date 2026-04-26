@@ -239,6 +239,10 @@ function processClientEvent(evt) {
         }
       }
       break;
+    case 'fallback-mode':
+      agent.fallbackMode = evt.detail || 'unknown';
+      agent.status = 'active';
+      break;
     default:
       break;
   }
@@ -378,9 +382,15 @@ function renderDetailPanel() {
   const name = appState.selectedAgent;
   const displayName = agent.role || name;
 
+  const fallbackBadge = agent.fallbackMode === 'tier-1'
+    ? '<span class="fallback-badge tier-1">RELAY</span>'
+    : agent.fallbackMode === 'tier-2'
+      ? '<span class="fallback-badge tier-2">SELF-EXEC</span>'
+      : '';
+
   let html = `<div class="detail-header">
     <span class="detail-icon">${agentIcon(displayName)}</span>
-    <span class="detail-name">${escapeHtml(displayName)}</span>
+    <span class="detail-name">${escapeHtml(displayName)}${fallbackBadge}</span>
     <span class="detail-status status-${agent.status || 'idle'}">${agent.status || 'idle'}</span>
     <button class="detail-close" id="detail-close">&times;</button>
   </div>`;
