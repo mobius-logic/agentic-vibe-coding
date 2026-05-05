@@ -36,6 +36,12 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - Feature branches: `feature/<area>/<short-description>`
 - Bug fix branches: `fix/<area>/<short-description>`
 
+## Modular Architecture Preference
+- The architect MUST default to modular/microservice architecture for all new projects
+- Components should be stateless (except data/storage layers), independently deployable, and communicate via stable APIs
+- Exceptions allowed only for trivially simple projects (< 3 components) or when human explicitly requests monolith
+- Any deviation must be justified in the architecture document
+
 ## Branching Workflow
 - Always create a feature branch before making changes
 - Never commit directly to `main`
@@ -139,6 +145,7 @@ Leads MUST delegate to subagents — they must NEVER write code, run tests, revi
 | **Architect** (`@architect`) | ❌ No | git read, dashboard events, timestamps, own log, `.plans/` files only | Create/edit `.plans/` and own session log only |
 | **Leads** (`@backend-lead`, `@frontend-lead`, `@infra-lead`) | ❌ No | git ops, dashboard events, own log only | Own session log only |
 | **Code Reviewer** (`@code-reviewer`) | ❌ No | git diff, read-only inspection, own log only | Own session log only |
+| **Test Lead** (`@test-lead`) | ❌ No | git read, dashboard events, own log, `.test-specs/` file creation | `.test-specs/` and own session log only |
 | **Coders** (`@developer`, `@tester`, `@docs-writer`) | ✅ Yes | Full terminal access | Full file creation/modification |
 
 Non-coding agents must NEVER use the `execute` tool to create, edit, or delete application code, test files, config files, or documentation. The `execute` tool is restricted to: git operations, dashboard event emission, timestamp retrieval, and appending to the agent's own session log.
@@ -148,10 +155,11 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 | 0 | Plan Approval | Human approves execution plan |
 | 1 | Branch Creation | Feature branch exists |
 | 2 | Implementation | `@developer` returns completion report |
+| 2.5 | Test Spec Readiness | Test-lead specs exist for workstream (or fallback documented) |
 | 3 | Testing | `@tester` returns verdict "ALL PASS" |
 | 4 | Code Review | `@code-reviewer` returns verdict "APPROVE" |
 | 5 | Documentation | `@docs-writer` returns completion report |
-| 6 | Pre-Commit Checklist | All 6 checkboxes verified TRUE |
+| 6 | Pre-Commit Checklist | All 8 checkboxes verified TRUE |
 | 7 | Commit & Report | Session log written, events emitted |
 
 ### Delegation Rules
@@ -169,7 +177,7 @@ The `runSubagent` tool may not be available in all VS Code Copilot Chat sessions
 
 | Tier | Mode | Description |
 |------|------|-------------|
-| Normal | runSubagent delegation | Standard protocol � leads invoke subagents |
+| Normal | runSubagent delegation | Standard protocol � leads invoke subagents |
 | Tier 1 | Human-relay | Lead prepares delegation payloads for human to paste into separate agent chats |
 | Tier 2 | Self-execution | Lead performs all subagent work itself (requires human's explicit blanket approval) |
 

@@ -104,3 +104,24 @@
 - **Open Questions**: None
 - **Delegation Mode**: manual (payloads prepared for copy-paste)
 - **Status**: approved / ready for delegation
+
+## 2026-05-05 14:43:07 — Session Summary
+- **Project**: Template Workflow Enhancements (Modular Bias, Test Lead, Docs Update)
+- **Architecture Plan**: .plans/template/2026-05-05-144307-architecture-modular-test-lead.md
+- **Architecture Style**: template infrastructure (modular agent workflow changes)
+- **Execution Mode**: sequential
+- **Launch Plan**: .plans/template/2026-05-05-144307-launch-plan-modular-test-lead.md
+- **Feature Fingerprint**: template-workflow-modular-test-lead
+- **Workstreams Identified**:
+  - template-infra → @infra-lead (8 tasks, all file modifications)
+- **Decisions Made**:
+  - Modular architecture is strong default with rare justified exceptions
+  - Test-lead is cross-cutting (single agent for all workstreams)
+  - Test-lead runs parallel with development (Gate 2)
+  - Team leads still invoke @tester at Gate 3 using test-lead specs
+  - Test-lead writes specs via terminal (no edit tool) like architect writes plans
+  - New .test-specs/ directory with project/template split
+  - Gate 2.5 is soft gate (fallback to developer suggested tests if specs not ready)
+- **Open Questions**: None
+- **Delegation Mode**: manual (awaiting human to invoke @infra-lead)
+- **Status**: approved / ready for delegation

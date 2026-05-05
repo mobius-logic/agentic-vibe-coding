@@ -117,7 +117,7 @@ cat >> .agent-logs/project/backend-lead-log.md << 'EOF'
 EOF
 ```
 
-## Edit Tool — Conditional Access (MANDATORY READ)
+## Edit Tool ï¿½ Conditional Access (MANDATORY READ)
 
 The `edit` tool is available to you but RESTRICTED:
 
@@ -134,7 +134,7 @@ Before starting any work, determine your delegation capability:
    - If **YES** -> **Normal delegation mode**. Proceed to Phase 1.
    - If **NO** -> Emit fallback-mode event and announce to the human:
      "Warning: Subagent invocation is unavailable in this session. I cannot delegate to @developer, @tester, @code-reviewer, or @docs-writer."
-     Then ask via askQuestions: "Would you prefer to (a) relay delegation payloads yourself — I'll prepare them for you to paste into separate agent chats, or (b) grant me blanket approval to self-execute all roles?"
+     Then ask via askQuestions: "Would you prefer to (a) relay delegation payloads yourself ï¿½ I'll prepare them for you to paste into separate agent chats, or (b) grant me blanket approval to self-execute all roles?"
 
 2. **If Tier 1 (Human-Relay)**:
    - For each gate requiring a subagent, prepare the full Delegation Payload as normal
@@ -153,7 +153,7 @@ Before starting any work, determine your delegation capability:
      - Gate 4: Self-review against standards (as @code-reviewer), write to `.agent-logs/<context>/code-reviewer-log.md`
      - Gate 5: Write docs (as @docs-writer), write to `.agent-logs/<context>/docs-writer-log.md`
    - Each role's log MUST include: `- **Execution Mode**: fallback-self-execution (subagent unavailable)`
-   - At Gate 7, your lead session log MUST note: "Fallback self-execution mode — all roles performed by lead"
+   - At Gate 7, your lead session log MUST note: "Fallback self-execution mode ï¿½ all roles performed by lead"
    - Emit at session start: `node dashboard/lib/emit-event.js backend-lead fallback-mode --detail "tier-2" --workstream backend`
 
 ## Workflow
@@ -192,9 +192,16 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
 14. Emit dashboard event: `task-completed`
 15. **Gate check**: Developer returned a valid completion report with status "done"
 
+#### GATE 2.5: Test Spec Readiness (NEW)
+- Verify that test-lead specs exist at `.test-specs/project/` or `.test-specs/template/` for this workstream
+- Read the test spec file to confirm it covers the implemented features
+- **Gate check**: Test spec file exists for this workstream
+- **Fallback**: If test-lead has not produced specs yet, proceed using developer's "Suggested Tests" as fallback input for @tester
+
 #### GATE 3: Testing (MANDATORY â€” cannot skip)
 16. Invoke `@tester` with the **Delegation Payload** including:
-    - What to test (based on developer's "Suggested Tests")
+    - **Test Specs Reference**: .test-specs/<project|template>/<date>-<workstream>-test-spec.md
+    - What to test (the test-lead's test specification is the PRIMARY input for what to test; the developer's "Suggested Tests" are SECONDARY/supplementary)
     - Expected test coverage areas
 17. Emit dashboard event: `subagent-invoked --detail "@tester: <scope>"`
 18. **Read the tester's completion report** and verify:
@@ -221,6 +228,7 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
     - What features/APIs were added or changed
     - Update `README.md` with any new features, setup steps, or API docs
     - Create/update relevant docs in `docs/` if needed
+    - **Test Specs Reference**: .test-specs/<project|template>/<date>-<workstream>-test-spec.md
 27. Emit dashboard event: `subagent-invoked --detail "@docs-writer: <scope>"`
 28. **Read the docs-writer's completion report** and verify:
     - "Log Written" field is "yes"
@@ -235,6 +243,8 @@ Before committing, verify every item:
 - [ ] Documentation updated via `@docs-writer` (completion report received)
 - [ ] All subagent logs written to `.agent-logs/`
 - [ ] All dashboard events emitted for every gate
+- [ ] Test specs exist from @test-lead (or fallback documented)
+- [ ] Test documentation included by @docs-writer
 
 ðŸ›‘ **If ANY checkbox is FALSE**: Do NOT commit. Go back and complete the missing gate.
 
