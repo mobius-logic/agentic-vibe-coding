@@ -19,35 +19,35 @@ collaborate across Git branches to produce a working product. Each agent has a d
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   ORCHESTRATOR (You)                         │
-│          Uses @architect to design the system                │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │                   ARCHITECT                              │ │
-│  │   Interviews you → Designs MODULAR architecture →        │ │
-│  │   Produces workstream briefs for each team lead          │ │
-│  └────┬──────────────┬──────────────┬──────────────┬───────┘ │
-│       │              │              │              │          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-│  │ Team Lead│  │ Team Lead│  │ Team Lead│  │ Test Lead│    │
-│  │ (Backend)│  │(Frontend)│  │  (Infra) │  │(Testing) │    │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘    │
-│       │              │              │              │          │
-│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐   (produces      │
+│                   ORCHESTRATOR (You)                        │
+│          Uses @architect to design the system               │
+│                                                             │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │                   ARCHITECT                            │ │
+│  │   Interviews you → Designs MODULAR architecture →      │ │
+│  │   Produces workstream briefs for each team lead        │ │
+│  └────┬──────────────┬──────────────┬──────────────┬──────┘ │
+│       │              │              │              │        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│  │ Team Lead│  │ Team Lead│  │ Team Lead│  │ Test Lead│     │
+│  │ (Backend)│  │(Frontend)│  │  (Infra) │  │(Testing) │     │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
+│       │             │             │             │           │
+│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐   (produces       │
 │  │Developer │  │Developer │  │Developer │   test specs)     │
 │  │  Agent   │  │  Agent   │  │  Agent   │                   │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘                   │
-│       │              │              │                         │
+│       │             │             │                         │
 │  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐                   │
 │  │  Tester  │  │  Tester  │  │  Tester  │  ← uses test-lead │
-│  │  Agent   │  │  Agent   │  │  Agent   │    specs as input  │
+│  │  Agent   │  │  Agent   │  │  Agent   │   specs as input  │
 │  └──────────┘  └──────────┘  └──────────┘                   │
-│                                                              │
-│  ┌──────────┐  ┌──────────┐                                  │
-│  │Code      │  │  Docs    │  ← also documents test cases     │
-│  │Reviewer  │  │  Writer  │                                  │
-│  └──────────┘  └──────────┘                                  │
-└──────────────────────────────────────────────────────────────┘
+│                                                             │
+│  ┌──────────┐  ┌──────────┐                                 │
+│  │Code      │  │  Docs    │  ← also documents test cases    │
+│  │Reviewer  │  │  Writer  │                                 │
+│  └──────────┘  └──────────┘                                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 ## Quick Start
 
