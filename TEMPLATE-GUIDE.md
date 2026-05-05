@@ -18,36 +18,36 @@ collaborate across Git branches to produce a working product. Each agent has a d
 (architect, team lead, developer, tester, reviewer) with restricted tools and focused instructions.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   ORCHESTRATOR (You)                    │
-│          Uses @architect to design the system           │
-│                                                         │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │                   ARCHITECT                       │  │
-│  │   Interviews you → Designs architecture → Produces│  │
-│  │   workstream briefs for each team lead            │  │
-│  └────┬─────────────┬─────────────┬──────────────────┘  │
-│       │             │             │                     |
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
-│  │ Team Lead│  │ Team Lead│  │ Team Lead│  .agent.md    │
-│  │ (Backend)│  │(Frontend)│  │  (Infra) │  files        │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘               │
-│       │             │             │                     │
-│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐               │
-│  │Developer │  │Developer │  │Developer │  subagents    │
-│  │  Agent   │  │  Agent   │  │  Agent   │               │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘               │
-│       │             │             │                     │
-│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐               │
-│  │  Tester  │  │  Tester  │  │  Tester  │  subagents    │
-│  │  Agent   │  │  Agent   │  │  Agent   │               │
-│  └──────────┘  └──────────┘  └──────────┘               │
-│                                                         │
-│  ┌──────────┐  ┌──────────┐                             │
-│  │Code      │  │  Docs    │  cross-cutting agents       │
-│  │Reviewer  │  │  Writer  │                             │
-│  └──────────┘  └──────────┘                             │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                   ORCHESTRATOR (You)                         │
+│          Uses @architect to design the system                │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                   ARCHITECT                              │ │
+│  │   Interviews you → Designs MODULAR architecture →        │ │
+│  │   Produces workstream briefs for each team lead          │ │
+│  └────┬──────────────┬──────────────┬──────────────┬───────┘ │
+│       │              │              │              │          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
+│  │ Team Lead│  │ Team Lead│  │ Team Lead│  │ Test Lead│    │
+│  │ (Backend)│  │(Frontend)│  │  (Infra) │  │(Testing) │    │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘    │
+│       │              │              │              │          │
+│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐   (produces      │
+│  │Developer │  │Developer │  │Developer │   test specs)     │
+│  │  Agent   │  │  Agent   │  │  Agent   │                   │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘                   │
+│       │              │              │                         │
+│  ┌────┴─────┐  ┌────┴─────┐  ┌────┴─────┐                   │
+│  │  Tester  │  │  Tester  │  │  Tester  │  ← uses test-lead │
+│  │  Agent   │  │  Agent   │  │  Agent   │    specs as input  │
+│  └──────────┘  └──────────┘  └──────────┘                   │
+│                                                              │
+│  ┌──────────┐  ┌──────────┐                                  │
+│  │Code      │  │  Docs    │  ← also documents test cases     │
+│  │Reviewer  │  │  Writer  │                                  │
+│  └──────────┘  └──────────┘                                  │
+└──────────────────────────────────────────────────────────────┘
 ```
 ## Quick Start
 
@@ -81,6 +81,7 @@ collaborate across Git branches to produce a working product. Each agent has a d
 | `@backend-lead` | Plans backend work, creates branches, delegates | Yes | All + subagents |
 | `@frontend-lead` | Plans frontend work, creates branches, delegates | Yes | All + subagents |
 | `@infra-lead` | Plans infra/DevOps work, delegates | Yes | All + subagents |
+| `@test-lead` | Reads plans, produces test specifications for @tester (does NOT look at code) | Yes | Read, search, execute, web, todo, askQuestions |
 | `@code-reviewer` | Reviews diffs, flags issues | Yes | Read-only |
 | `@developer` | Writes code per spec (subagent only) | No | Read, edit, search, execute |
 | `@tester` | Writes/runs tests (subagent only) | No | Read, edit, search, execute |
@@ -130,6 +131,18 @@ For smaller features or when you already know the architecture, you can go direc
 7. Each subagent receives the **plan reference** so they understand context
 8. After coding → testing → docs → review, the lead reports completion
 
+#### Test Planning Workflow (Parallel with Development)
+
+After the architect produces plans and leads present their execution plans:
+
+1. You invoke `@test-lead` with the architecture plan and workstream execution plans
+2. The test-lead reads ALL plans and produces test specifications for each workstream
+3. Test specs are written to `.test-specs/project/` (one file per workstream)
+4. When team leads reach Gate 3 (Testing), they use the test-lead's specs as PRIMARY input for `@tester`
+5. This ensures tests are designed from requirements/plans, not just the implementation
+
+> **Key principle**: Test-lead NEVER looks at implementation code. Tests are derived purely from the architectural plan and acceptance criteria. This catches implementation drift from the design.
+
 ### Referencing Plans and Architecture Documents
 - All approved architectures and plans live in `.plans/project/` with date-timestamps
 - Template plans (agent protocols, dashboard features) live in `.plans/template/`
@@ -156,6 +169,9 @@ For smaller features or when you already know the architecture, you can go direc
 ├── template/         # Template infrastructure logs (synced from upstream)
 └── project/          # Project-specific logs (protected from upstream sync)
 .agent-events/        # Structured agent event logs (JSONL, auto-generated)
+.test-specs/          # Test specifications from @test-lead (auto-generated)
+├── template/         # Template test specs
+└── project/          # Project-specific test specs (protected from upstream sync)
 .plans/               # Approved plan documents (auto-generated)
 ├── template/         # Template infrastructure plans (synced from upstream)
 └── project/          # Project-specific plans (protected from upstream sync)
@@ -273,6 +289,7 @@ The Launch Plan's "Sequential Fallback Order" section gives you the exact sequen
 | Architect asks about execution mode | Answer: local VS Code (sequential), Codespaces (parallel), or constrained parallel with slot count |
 | Architect presents Launch Plan | Review wave structure, Codespace count, sync points, then confirm |
 | Architect produces workstream briefs | Follow the Launch Plan — open Codespaces per wave (parallel) or run leads in order (sequential) |
+| Leads present execution plans | Invoke `@test-lead` with the architecture plan and workstream plans — it produces test specs in parallel with development |
 | Agent presents a plan | Review it carefully, suggest changes, then approve |
 | Agent says "done" | Check `git log`, skim files, then `git push origin <branch>` |
 | Agent made a mistake | Tell it what's wrong in the same chat session |

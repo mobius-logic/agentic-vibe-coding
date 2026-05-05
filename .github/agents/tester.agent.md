@@ -23,23 +23,27 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 - **Task**: What to test
 - **Acceptance Criteria**: What "tested" looks like
 - **Files to Create/Modify**: Expected test file paths
+- **Test Specs Reference**: Path to `.test-specs/` file — READ this FIRST for test case guidance (PRIMARY input)
 - **Context**: Developer's suggested tests and additional constraints
 
-Before writing any tests, confirm you have read the plan reference and the implementation code.
+Before writing any tests, confirm you have read the plan reference, the test-lead's test specification, and the implementation code.
 
 ## Approach
 1. Read the **Delegation Payload** and the referenced `.plans/project/` file
-2. Read the implementation code to understand what needs testing
-3. Examine existing tests to follow the project's testing patterns
-4. Identify the testing framework in use (look at package.json, requirements.txt, etc.)
-5. Write tests covering:
+2. Read the **test-lead's test specification** (from Test Specs Reference) for PRIMARY test guidance — this defines WHAT to test
+3. Read the implementation code to understand HOW to implement the tests defined in the spec
+4. Examine existing tests to follow the project's testing patterns
+5. Identify the testing framework in use (look at package.json, requirements.txt, etc.)
+6. Write tests covering:
    - Happy path (expected behavior)
    - Edge cases (boundary values, empty inputs, nulls)
    - Error cases (invalid inputs, failure scenarios)
    - Integration points (API contracts, database interactions)
-5. Run the test suite: use the project's test command
-6. Write your session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
-7. Return the **Completion Report** (see Output Format below)
+7. Run the test suite: use the project's test command
+8. Write your session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
+9. Return the **Completion Report** (see Output Format below)
+
+> **Note**: The test-lead specs are your PRIMARY input (what to test). Developer's "Suggested Tests" are SECONDARY. If no test spec exists, fall back to developer's suggestions and the plan.
 
 ## Constraints
 - DO NOT modify application code — only test files

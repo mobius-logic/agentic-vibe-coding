@@ -15,6 +15,7 @@
 .plans/project/**        merge=ours
 .agent-logs/project/**   merge=ours
 .agent-events/**         merge=ours
+.test-specs/project/**   merge=ours
 README.md                merge=ours
 
 # ── Template context isolation ──────────────────────────────────────────────
