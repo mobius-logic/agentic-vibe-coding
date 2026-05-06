@@ -171,6 +171,13 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 - NEVER skip `@tester`, `@code-reviewer`, or `@docs-writer` — all three are mandatory
 - All agents MUST write session logs to `.agent-logs/project/` (or `.agent-logs/template/`) and emit dashboard events
 
+### Test-Lead Invocation (Mandatory)
+- The `@test-lead` MUST be invoked after leads receive and present their execution plans
+- The human (or architect during automated delegation) invokes `@test-lead` with the architecture plan and all workstream execution plans
+- Test-lead runs in PARALLEL with Gate 2 (development) across all workstreams
+- Test-lead produces specs to `.test-specs/project/` that leads use at Gate 3
+- If test-lead is not invoked, Gate 2.5 fallback applies (developer's suggested tests used instead)
+
 ## Subagent Unavailable Fallback
 
 The `runSubagent` tool may not be available in all VS Code Copilot Chat sessions. When this occurs, delegating agents (leads and architect) follow a tiered fallback:
