@@ -99,6 +99,36 @@ check_upstream_access() {
     exit 1
 }
 
+# ── Azure DevOps auth detection ──────────────────────────────────────────────
+# When running in Azure Pipelines, SYSTEM_ACCESSTOKEN is available. Configure
+# git credential helper so fetch/push operations authenticate automatically.
+# This is backward-compatible — does nothing outside Azure Pipelines context.
+configure_azdo_credentials() {
+    local url
+    url=$(git remote get-url "$UPSTREAM_REMOTE" 2>/dev/null) || return 0
+
+    # Only activate if upstream URL points to Azure DevOps
+    if ! echo "$url" | grep -qE "dev\.azure\.com|visualstudio\.com"; then
+        return 0
+    fi
+
+    # Azure Pipelines context: use System.AccessToken
+    if [ -n "${SYSTEM_ACCESSTOKEN:-}" ]; then
+        info "Azure Pipelines detected — configuring git credentials..."
+        local encoded_pat
+        encoded_pat=$(printf ":%s" "$SYSTEM_ACCESSTOKEN" | base64 -w 0 2>/dev/null || \
+                      printf ":%s" "$SYSTEM_ACCESSTOKEN" | base64 2>/dev/null)
+        git config http.extraheader "Authorization: Basic $encoded_pat"
+        return 0
+    fi
+
+    # Local context: check for az CLI
+    if command -v az &>/dev/null; then
+        info "Azure DevOps upstream detected — using az CLI for credentials."
+        # The az devops login / credential manager handles this automatically
+    fi
+}
+
 # ── 1. Configure upstream remote ────────────────────────────────────────────
 if git remote get-url "$UPSTREAM_REMOTE" &>/dev/null; then
     CURRENT_URL=$(git remote get-url "$UPSTREAM_REMOTE")
@@ -127,6 +157,7 @@ fi
 
 # ── 3. Fetch upstream ───────────────────────────────────────────────────────
 check_upstream_access
+configure_azdo_credentials
 info "Fetching upstream/$UPSTREAM_BRANCH..."
 git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 

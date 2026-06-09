@@ -1,0 +1,22 @@
+﻿{
+  "platforms": {
+    "azdo": {
+      "displayName": "Azure DevOps",
+      "mirrorUrl": "https://dev.azure.com/mobiuslogic/ML%20Templates/_git/agentic-vibe-coding",
+      "orgUrl": "https://dev.azure.com/mobiuslogic",
+      "defaultProject": "ML Templates",
+      "enabled": true
+    },
+    "gitlab": {
+      "displayName": "GitLab",
+      "mirrorUrl": "",
+      "orgUrl": "",
+      "defaultProject": "",
+      "enabled": false
+    }
+  },
+  "defaults": {
+    "upstreamBranch": "main",
+    "syncScheduleCron": "0 9 * * 1"
+  }
+}
