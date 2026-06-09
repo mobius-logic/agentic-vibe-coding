@@ -689,3 +689,199 @@ A: The merge-based approach syncs everything the template changed. If you need m
 granular control, you can `git merge --no-commit` then selectively `git checkout HEAD -- <path>`
 to revert specific files before committing.
 
+
+---
+
+## Multi-Platform Support
+
+This template supports distribution to multiple Git hosting platforms beyond GitHub.
+Projects created on any supported platform can sync template updates using the same
+mechanism — Git merge with `.gitattributes merge=ours` protection.
+
+### Supported Platforms
+
+| Platform | Status | Init Script | CI/CD Sync | Mirror Pipeline |
+|----------|--------|-------------|------------|-----------------|
+| **GitHub** | ✅ Fully supported | "Use this template" button | `.github/workflows/sync-template.yml` | N/A (canonical source) |
+| **Azure DevOps** | ✅ Fully supported | `scripts/init-project.ps1 --platform azdo` | `pipelines/azdo/sync-template.yml` | `.github/workflows/mirror-to-azdo.yml` |
+| **GitLab** | 🔮 Planned | — | — | — |
+
+### Architecture
+
+```
+┌──────────────────────────────────────────┐
+│   GitHub (Canonical Template Repo)       │
+│   github.com/mobius-logic/               │
+│        agentic-vibe-coding               │
+└────────┬─────────────────┬───────────────┘
+         │                 │
+    "Use this template"    │  Auto-mirror on push to main
+         │                 │
+         ▼                 ▼
+┌────────────────┐   ┌──────────────────────────────────┐
+│ GitHub Child   │   │ Azure DevOps Mirror Repo         │
+│ Repos          │   │ dev.azure.com/mobiuslogic/       │
+│                │   │   ML Templates/_git/             │
+│ upstream=GitHub│   │     agentic-vibe-coding          │
+└────────────────┘   └────────┬─────────────────────────┘
+                              │
+                    init-project --platform azdo
+                              │
+                              ▼
+                     ┌──────────────────────────┐
+                     │ Azure DevOps Child Repos  │
+                     │ upstream = mirror repo    │
+                     │                          │
+                     │ Sync: manual script      │
+                     │   or Azure Pipeline PR   │
+                     └──────────────────────────┘
+```
+
+### Platform Configuration
+
+Platform destinations are registered in `scripts/platforms.json`:
+
+```json
+{
+  "platforms": {
+    "azdo": {
+      "displayName": "Azure DevOps",
+      "mirrorUrl": "https://dev.azure.com/mobiuslogic/ML%20Templates/_git/agentic-vibe-coding",
+      "orgUrl": "https://dev.azure.com/mobiuslogic",
+      "defaultProject": "ML Templates",
+      "enabled": true
+    }
+  }
+}
+```
+
+---
+
+## Azure DevOps Setup
+
+### One-Time Admin Setup (Mirror Repo)
+
+An admin creates the mirror repo once. All Azure DevOps child repos sync from it.
+
+1. **Create the mirror repo in Azure DevOps**:
+   ```bash
+   az repos create --name "agentic-vibe-coding" \
+     --org "https://dev.azure.com/mobiuslogic" \
+     --project "ML Templates"
+   ```
+
+2. **Create an Azure DevOps Personal Access Token (PAT)**:
+   1. Go to `https://dev.azure.com/mobiuslogic`
+   2. Click your **profile icon** (top-right) → **Personal access tokens**
+   3. Click **+ New Token**
+   4. Configure the token:
+      - **Name**: `github-mirror-push` (or any descriptive name)
+      - **Organization**: `mobiuslogic`
+      - **Expiration**: Set per your security policy (max 1 year; rotate before expiry)
+      - **Scopes**: Select **Custom defined** → expand **Code** → check **Read & Write**
+   5. Click **Create** and **copy the token immediately** (it will not be shown again)
+
+3. **Add the PAT to GitHub Secrets**:
+   1. Go to your GitHub template repo → **Settings** → **Secrets and variables** → **Actions**
+   2. Click **New repository secret**
+   3. **Name**: `AZDO_MIRROR_PAT`
+   4. **Secret**: Paste the PAT from step 2
+   5. Click **Add secret**
+
+   > **Security note**: The PAT should have minimal scope (Code Read/Write only).
+   > Set a calendar reminder to rotate it before expiration. If the PAT expires,
+   > the mirror workflow will fail — check GitHub Actions logs if the mirror
+   > appears stale.
+
+4. **The mirror pipeline auto-activates**: `.github/workflows/mirror-to-azdo.yml`
+   pushes every `main` update to the Azure DevOps mirror automatically.
+
+5. **(Recommended) Protect the mirror repo**: Set branch policies on `main` in
+   Azure DevOps to prevent direct pushes — only the mirror pipeline should write.
+
+### Creating a New Azure DevOps Project
+
+Use the init script to create a new Azure DevOps repo from the template:
+
+**PowerShell:**
+```powershell
+.\scripts\init-project.ps1 -Platform azdo -Name "my-project" -AzDoProject "MyTeamProject"
+```
+
+**Bash:**
+```bash
+./scripts/init-project.sh --platform azdo --name "my-project" --azdo-project "MyTeamProject"
+```
+
+The script:
+1. Creates the repo in Azure DevOps via `az repos create`
+2. Seeds it with template content (clean history — no fork relationship)
+3. Configures the `upstream` remote pointing to the mirror
+4. Configures `.gitattributes merge=ours` protection
+5. Removes template-specific context (`.plans/template/`, `.agent-logs/template/`)
+
+**Prerequisites:**
+- Azure CLI installed and logged in (`az login`)
+- Permission to create repos in the target Azure DevOps project
+
+### Syncing Template Updates (Azure DevOps)
+
+#### Option A: Manual Script
+
+Same script as GitHub — works with any Git URL:
+
+```powershell
+.\scripts\sync-template.ps1
+```
+
+The script auto-detects Azure DevOps URLs and configures authentication
+appropriately (using `az` CLI credentials locally, or `SYSTEM_ACCESSTOKEN`
+in Azure Pipelines).
+
+#### Option B: Azure Pipelines (Automated PRs)
+
+Set up the included Azure Pipeline to create PRs with template updates:
+
+1. Copy `pipelines/azdo/sync-template.yml` to your child repo
+2. Create a pipeline in Azure DevOps from that YAML
+3. Grant the build service "Contribute to pull requests" permission
+4. Run manually or let the weekly schedule trigger it
+
+See `pipelines/azdo/README.md` for detailed setup instructions.
+
+### Authentication
+
+| Context | How It Works |
+|---------|-------------|
+| **Local developer** | Git Credential Manager or `az` CLI handles auth transparently |
+| **Azure Pipelines** | `System.AccessToken` (built-in, no extra secrets needed for same-org repos) |
+| **Mirror pipeline** | GitHub Secret `AZDO_MIRROR_PAT` (PAT with Code Read/Write) |
+
+---
+
+## Adding Future Platforms
+
+The template is designed for extensibility. To add a new platform (e.g., GitLab):
+
+1. **Register the platform** in `scripts/platforms.json`:
+   ```json
+   "gitlab": {
+     "displayName": "GitLab",
+     "mirrorUrl": "https://gitlab.com/your-org/agentic-vibe-coding.git",
+     "orgUrl": "https://gitlab.com/your-org",
+     "defaultProject": "",
+     "enabled": true
+   }
+   ```
+
+2. **Create a mirror workflow**: `.github/workflows/mirror-to-gitlab.yml`
+
+3. **Add platform case** to `scripts/init-project.ps1` and `.sh`
+
+4. **Create a CI/CD sync pipeline** for the platform (e.g., `.gitlab-ci.yml`)
+
+5. **Update this guide** with platform-specific documentation
+
+The core sync logic (`scripts/sync-template.ps1/.sh`) is already platform-agnostic —
+it works with any Git URL. Only the CI/CD automation and repo creation are
+platform-specific.

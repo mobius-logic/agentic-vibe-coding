@@ -1,0 +1,150 @@
+﻿# ──────────────────────────────────────────────────────────────────────────────
+# Template Sync — Azure Pipelines equivalent of .github/workflows/sync-template.yml
+#
+# Creates a PR in the child repo when the upstream template mirror has updates.
+#
+# HOW TO USE:
+#   1. Copy this file to your Azure DevOps child repo (or reference via pipeline import)
+#   2. Create a pipeline from this YAML in Azure DevOps
+#   3. The pipeline runs on-demand (or weekly) and creates a PR with template updates
+#   4. Review the PR — project-specific files are protected by .gitattributes
+#
+# REQUIREMENTS:
+#   - The child repo must have the "upstream" remote configured pointing to the
+#     Azure DevOps template mirror repo
+#   - .gitattributes must be present with merge=ours rules
+#   - Pipeline must have "Contribute to pull requests" permission
+# ──────────────────────────────────────────────────────────────────────────────
+
+trigger: none
+
+schedules:
+  - cron: "0 9 * * 1"
+    displayName: "Weekly Monday 09:00 UTC"
+    branches:
+      include:
+        - main
+    always: false
+
+parameters:
+  - name: templateBranch
+    displayName: "Template branch to sync from"
+    type: string
+    default: "main"
+
+variables:
+  - name: UPSTREAM_REMOTE
+    value: "upstream"
+  - name: UPSTREAM_BRANCH
+    value: ${{ parameters.templateBranch }}
+  - name: SYNC_BRANCH
+    value: "chore/sync-template-updates"
+  - name: TEMPLATE_MIRROR_URL
+    value: "https://dev.azure.com/mobiuslogic/ML%20Templates/_git/agentic-vibe-coding"
+
+pool:
+  vmImage: "ubuntu-latest"
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+    persistCredentials: true
+
+  - script: |
+      git config user.name "Azure Pipelines"
+      git config user.email "azuredevops@users.noreply.azure.com"
+    displayName: "Configure Git identity"
+
+  - script: |
+      if git remote get-url $(UPSTREAM_REMOTE) &>/dev/null; then
+        git remote set-url $(UPSTREAM_REMOTE) "$(TEMPLATE_MIRROR_URL)"
+      else
+        git remote add $(UPSTREAM_REMOTE) "$(TEMPLATE_MIRROR_URL)"
+      fi
+    displayName: "Configure upstream remote"
+
+  - script: |
+      git config merge.ours.driver true
+    displayName: "Configure ours merge driver"
+
+  - script: |
+      # Use System.AccessToken for auth to same-org repos
+      B64_PAT=$(echo -n ":$(System.AccessToken)" | base64)
+      git -c http.extraHeader="Authorization: Basic $B64_PAT" \
+        fetch $(UPSTREAM_REMOTE) $(UPSTREAM_BRANCH)
+    displayName: "Fetch upstream template"
+    env:
+      System.AccessToken: $(System.AccessToken)
+
+  - script: |
+      LOCAL_HEAD=$(git rev-parse HEAD)
+      UPSTREAM_HEAD=$(git rev-parse "$(UPSTREAM_REMOTE)/$(UPSTREAM_BRANCH)")
+      MERGE_BASE=$(git merge-base HEAD "$(UPSTREAM_REMOTE)/$(UPSTREAM_BRANCH)" 2>/dev/null || echo "")
+
+      if [ "$LOCAL_HEAD" = "$UPSTREAM_HEAD" ]; then
+        echo "##[section]Already up to date with upstream template."
+        echo "##vso[task.setvariable variable=hasUpdates]false"
+        exit 0
+      fi
+
+      if [ "$UPSTREAM_HEAD" = "$MERGE_BASE" ]; then
+        echo "##[section]Already up to date (local is ahead of upstream)."
+        echo "##vso[task.setvariable variable=hasUpdates]false"
+        exit 0
+      fi
+
+      echo "##vso[task.setvariable variable=hasUpdates]true"
+      echo "Template updates available."
+    displayName: "Check for updates"
+
+  - script: |
+      # Create or reset sync branch
+      git checkout -B $(SYNC_BRANCH)
+
+      # Merge upstream changes
+      git merge "$(UPSTREAM_REMOTE)/$(UPSTREAM_BRANCH)" \
+        --no-edit \
+        -m "chore(template): sync with upstream template $(date +%Y-%m-%d)" \
+        --allow-unrelated-histories || {
+          echo "##vso[task.logissue type=warning]Merge conflicts detected. Creating PR with conflicts for manual resolution."
+          git add .
+          git commit --no-edit -m "chore(template): sync with upstream (conflicts need resolution)" || true
+        }
+
+      # Remove template context that should not exist in project repos
+      CLEANED=false
+      for dir in .plans/template .agent-logs/template; do
+        if [ -d "$dir" ]; then
+          FILES=$(find "$dir" -type f ! -name "README.md" 2>/dev/null)
+          if [ -n "$FILES" ]; then
+            echo "Removing template content from $dir/..."
+            echo "$FILES" | xargs git rm --quiet 2>/dev/null || true
+            CLEANED=true
+          fi
+        fi
+      done
+      if [ "$CLEANED" = true ]; then
+        git commit --no-edit -m "chore(template-sync): remove template plans/logs from project repo"
+      fi
+
+      # Push sync branch
+      git push origin $(SYNC_BRANCH) --force
+    displayName: "Merge template updates"
+    condition: eq(variables['hasUpdates'], 'true')
+
+  - script: |
+      # Create PR using az CLI
+      az repos pr create \
+        --organization "$(System.CollectionUri)" \
+        --project "$(System.TeamProject)" \
+        --repository "$(Build.Repository.Name)" \
+        --source-branch "$(SYNC_BRANCH)" \
+        --target-branch "main" \
+        --title "chore(template): sync with upstream template" \
+        --description "Automated PR to sync template updates from the upstream mirror. Project-specific files (.plans/project/, .agent-logs/project/, README.md) are protected by .gitattributes merge=ours." \
+        --auto-complete false \
+        2>/dev/null || echo "PR already exists or creation skipped."
+    displayName: "Create Pull Request"
+    condition: eq(variables['hasUpdates'], 'true')
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)

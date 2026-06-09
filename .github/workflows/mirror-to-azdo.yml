@@ -1,0 +1,45 @@
+﻿# ──────────────────────────────────────────────────────────────────────────────
+# Mirror to Azure DevOps — Pushes template main branch to Azure DevOps mirror
+#
+# This keeps the Azure DevOps mirror repo in sync with the canonical GitHub repo.
+# Azure DevOps child projects use the mirror as their "upstream" for template sync.
+#
+# REQUIREMENTS:
+#   - GitHub Secret: AZDO_MIRROR_PAT (Azure DevOps PAT with Code Read/Write scope)
+#   - Azure DevOps mirror repo must exist (create once via az repos create)
+# ──────────────────────────────────────────────────────────────────────────────
+name: Mirror to Azure DevOps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AZDO_MIRROR_URL: "https://dev.azure.com/mobiuslogic/ML%20Templates/_git/agentic-vibe-coding"
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Azure DevOps mirror
+        env:
+          AZDO_PAT: ${{ secrets.AZDO_MIRROR_PAT }}
+        run: |
+          if [ -z "$AZDO_PAT" ]; then
+            echo "::error::AZDO_MIRROR_PAT secret is not set. Cannot mirror to Azure DevOps."
+            exit 1
+          fi
+
+          # Encode PAT for URL auth (user can be anything for PAT auth)
+          MIRROR_URL=$(echo "${{ env.AZDO_MIRROR_URL }}" | sed "s|https://|https://pat:${AZDO_PAT}@|")
+
+          # Push main branch to Azure DevOps mirror
+          git push "$MIRROR_URL" main:main --force
+
+          echo "✓ Mirrored main branch to Azure DevOps"
