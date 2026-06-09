@@ -759,6 +759,8 @@ Platform destinations are registered in `scripts/platforms.json`:
 
 ## Azure DevOps Setup
 
+> **📖 Full step-by-step guide**: See [AZURE-DEVOPS-GUIDE.md](AZURE-DEVOPS-GUIDE.md) for detailed instructions on creating a new Azure DevOps project and repo from this template (with UI screenshots walkthrough).
+
 ### One-Time Admin Setup (Mirror Repo)
 
 An admin creates the mirror repo once. All Azure DevOps child repos sync from it.
