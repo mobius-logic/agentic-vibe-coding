@@ -770,16 +770,33 @@ An admin creates the mirror repo once. All Azure DevOps child repos sync from it
      --project "ML Templates"
    ```
 
-2. **Add the PAT to GitHub Secrets**:
-   - In Azure DevOps: **User Settings → Personal Access Tokens**
-   - Create a PAT with **Code (Read & Write)** scope for the mirror repo
-   - In GitHub template repo: **Settings → Secrets → Actions**
-   - Add secret `AZDO_MIRROR_PAT` with the PAT value
+2. **Create an Azure DevOps Personal Access Token (PAT)**:
+   1. Go to `https://dev.azure.com/mobiuslogic`
+   2. Click your **profile icon** (top-right) → **Personal access tokens**
+   3. Click **+ New Token**
+   4. Configure the token:
+      - **Name**: `github-mirror-push` (or any descriptive name)
+      - **Organization**: `mobiuslogic`
+      - **Expiration**: Set per your security policy (max 1 year; rotate before expiry)
+      - **Scopes**: Select **Custom defined** → expand **Code** → check **Read & Write**
+   5. Click **Create** and **copy the token immediately** (it will not be shown again)
 
-3. **The mirror pipeline auto-activates**: `.github/workflows/mirror-to-azdo.yml`
+3. **Add the PAT to GitHub Secrets**:
+   1. Go to your GitHub template repo → **Settings** → **Secrets and variables** → **Actions**
+   2. Click **New repository secret**
+   3. **Name**: `AZDO_MIRROR_PAT`
+   4. **Secret**: Paste the PAT from step 2
+   5. Click **Add secret**
+
+   > **Security note**: The PAT should have minimal scope (Code Read/Write only).
+   > Set a calendar reminder to rotate it before expiration. If the PAT expires,
+   > the mirror workflow will fail — check GitHub Actions logs if the mirror
+   > appears stale.
+
+4. **The mirror pipeline auto-activates**: `.github/workflows/mirror-to-azdo.yml`
    pushes every `main` update to the Azure DevOps mirror automatically.
 
-4. **(Recommended) Protect the mirror repo**: Set branch policies on `main` in
+5. **(Recommended) Protect the mirror repo**: Set branch policies on `main` in
    Azure DevOps to prevent direct pushes — only the mirror pipeline should write.
 
 ### Creating a New Azure DevOps Project
