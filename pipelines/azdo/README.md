@@ -1,4 +1,5 @@
-﻿# Azure Pipelines — Template Sync Setup
+﻿<!-- Copyright (c) 2026 Mobius Logic, Inc. All rights reserved. PROPRIETARY AND CONFIDENTIAL. -->
+# Azure Pipelines — Template Sync Setup
 
 This directory contains an Azure Pipelines YAML definition that syncs template
 updates into your Azure DevOps child repo (equivalent to the GitHub Actions

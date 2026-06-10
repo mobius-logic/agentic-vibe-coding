@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mobius Logic, Inc. All rights reserved.
+# PROPRIETARY AND CONFIDENTIAL. Unauthorized copying prohibited.
 # ──────────────────────────────────────────────────────────────────────────────
 # sync-template.ps1 — Pull updates from the upstream template repository
 #

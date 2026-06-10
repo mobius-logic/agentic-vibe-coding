@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mobius Logic, Inc. All rights reserved.
+# PROPRIETARY AND CONFIDENTIAL. Unauthorized copying prohibited.
 # ──────────────────────────────────────────────────────────────────────────────
 # Template Sync — Automatically creates a PR when the upstream template
 # repository publishes a new release or on a weekly schedule.

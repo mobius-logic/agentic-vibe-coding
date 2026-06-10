@@ -155,3 +155,30 @@
 - **Subagents Invoked**: @developer (all 8 tasks), @tester (29 tests ALL PASS), @code-reviewer (APPROVE), @docs-writer (Decision Cheat Sheet entry added)
 - **Lessons Learned**: Template infra changes spanning many files benefit from a comprehensive test file to verify cross-file consistency
 - **Status**: done
+
+## 2026-06-10 17:39:32 - Session Summary (Infra Lead)
+- **Architecture/Plan Reference**: .plans/template/2026-06-10-163053-architecture-proprietary-license.md
+- **Branch**: chore/infra/proprietary-license
+- **Commit**: 011b6b3
+- **Execution Mode**: fallback-self-execution (subagent unavailable)
+- **Approved Execution Plan**:
+  1. Create LICENSE file with proprietary text (AC: exact content match)
+  2. Create THIRD-PARTY-NOTICES.md with attributions (AC: correct component list)
+  3. Add copyright headers to 8 source files (AC: correct syntax per language)
+  4. Write and run plan-compliance tests (AC: all spec cases pass)
+  5. Code review (AC: no behavioral changes)
+  6. Update documentation (AC: README license section updated)
+- **Tasks Completed**:
+  - Relocated plans/specs/logs from project/ to template/ (per human instruction)
+  - Created LICENSE file with exact proprietary text
+  - Created THIRD-PARTY-NOTICES.md with correct attributions
+  - Added copyright headers to: _edit_script.py, scripts/init-project.ps1, scripts/sync-template.ps1, scripts/init-project.sh, scripts/sync-template.sh, .github/workflows/mirror-to-azdo.yml, .github/workflows/sync-template.yml, pipelines/azdo/sync-template.yml
+  - Removed BOM from 4 files (init-project.ps1, init-project.sh, mirror-to-azdo.yml, pipelines/azdo/sync-template.yml)
+  - Wrote 68 plan-compliance tests (all passing)
+  - Updated README.md license section
+  - Added __pycache__ to .gitignore
+- **Files Changed**: LICENSE, THIRD-PARTY-NOTICES.md, _edit_script.py, scripts/init-project.ps1, scripts/sync-template.ps1, scripts/init-project.sh, scripts/sync-template.sh, .github/workflows/mirror-to-azdo.yml, .github/workflows/sync-template.yml, pipelines/azdo/sync-template.yml, README.md, .gitignore, tests/test_license_labeling.py
+- **Fixes Applied**: Removed UTF-8 BOM from 4 files that had encoding artifacts
+- **Subagents Invoked**: Self-execution (developer, tester, code-reviewer, docs-writer roles)
+- **Lessons Learned**: Some repo files had UTF-8 BOM — always check for BOM when adding headers to line 1; use [System.IO.File]::WriteAllText with UTF8Encoding(false) to strip BOM
+- **Status**: done
