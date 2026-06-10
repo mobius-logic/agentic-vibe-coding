@@ -64,10 +64,12 @@ runSubagent(agentName: "tester", prompt: "## Delegation Payload
 - **Branch**: feature/frontend/<name>
 - **Lead Agent**: frontend-lead
 - **Workstream**: frontend
-- **Task**: Write and run tests for <scope>
-- **Acceptance Criteria**: All tests pass, covers happy path + edge cases
+- **Task**: Write and run plan-compliance tests for <scope>
+- **Acceptance Criteria**: ALL test cases from test spec implemented and passing
 - **Files to Create/Modify**: <test file paths>
-- **Context**: Developer's suggested tests: <from developer report>")
+- **Test Specs Reference** (REQUIRED): .test-specs/<context>/<date>-<workstream>-test-spec.md
+- **Primary Directive**: Write tests that verify the implementation matches the architect's plan. The test spec defines WHAT the code must do. Tests validate plan compliance.
+- **Context**: Developer's suggested tests (supplementary only): <from developer report>")
 ```
 
 **@code-reviewer** — for reviewing changes:
@@ -193,24 +195,31 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
 14. Emit dashboard event: `task-completed`
 15. **Gate check**: Developer returned a valid completion report with status "done"
 
-#### GATE 2.5: Test Spec Readiness (NEW)
-- Verify that test-lead specs exist at `.test-specs/project/` or `.test-specs/template/` for this workstream
-- Read the test spec file to confirm it covers the implemented features
-- **Gate check**: Test spec file exists for this workstream
-- **Fallback**: If test-lead has not produced specs yet, proceed using developer's "Suggested Tests" as fallback input for @tester
+#### GATE 2.5: Test Spec Readiness (HARD BLOCKER — No Fallback)
+- Check `.test-specs/project/` (or `.test-specs/template/`) for a test spec covering this workstream
+- Read the test spec to confirm it covers the implemented features and acceptance criteria
+- **Gate check**: Test spec file EXISTS and covers this workstream's acceptance criteria
+- 🛑 **If test specs do NOT exist**:
+  1. Emit event: `node dashboard/lib/emit-event.js frontend-lead blocked --detail "Test specs missing — cannot proceed past Gate 2.5. @test-lead must run first." --workstream frontend`
+  2. Inform the human: "**BLOCKED**: Test specifications from @test-lead do not exist for this workstream. I cannot proceed to Gate 3 (Testing). Please invoke @test-lead with the architecture plan to produce test specs, then tell me to continue."
+  3. STOP and WAIT — do NOT proceed until human confirms test specs now exist
+  4. Re-verify `.test-specs/` contains specs for this workstream before proceeding
+- ❌ **NO FALLBACK**: Do NOT proceed with developer's suggested tests as a substitute. The purpose of plan-based testing is to verify code matches the plan, not to verify code works as the developer intended. Developer suggestions are supplementary ONLY — they cannot replace test-lead specs.
 
-#### GATE 3: Testing (MANDATORY — cannot skip)
+#### GATE 3: Testing — Plan Compliance Validation (MANDATORY — cannot skip)
 16. Invoke `@tester` with the **Delegation Payload** including:
-    - **Test Specs Reference**: .test-specs/<project|template>/<date>-<workstream>-test-spec.md
-    - Components to test (the test-lead's test specification is the PRIMARY input for what to test; the developer's "Suggested Tests" are SECONDARY/supplementary)
-    - User interactions to verify
-17. Emit dashboard event: `subagent-invoked --detail "@tester: <scope>"`
+    - **Test Specs Reference** (REQUIRED): `.test-specs/<project|template>/<date>-<workstream>-test-spec.md`
+    - **Primary Directive**: "Write tests that verify the implementation matches the architect's plan. The test spec defines WHAT the code must do. Your tests validate plan compliance — not just that the code runs without errors."
+    - Expected test coverage: ALL test cases from the test spec must be implemented
+    - Developer's "Suggested Tests" may be included as supplementary context only
+17. Emit dashboard event: `subagent-invoked --detail "@tester: plan-compliance validation for <scope>"`
 18. **Read the tester's completion report** and verify:
     - "Verdict" is "ALL PASS"
+    - "All Spec Cases Covered" is "Yes"
     - "Log Written" field is "yes"
-19. **Gate check**: Tester verdict is "ALL PASS"
+19. **Gate check**: Tester verdict is "ALL PASS" AND all spec test cases were implemented
 20. Push events to remote: `node dashboard/lib/push-events.js --workstream frontend`
-21. 🛑 **If tests fail**: Loop back to GATE 2 — invoke @developer to fix, then re-run GATE 3
+21. 🛑 **If tests fail**: This means the developer's code DEVIATES from the architect's plan. Loop back to GATE 2 — invoke @developer to fix the code to match the plan specification (do NOT ask @tester to weaken the tests). Then re-run GATE 3.
 
 #### GATE 4: Code Review (MANDATORY — cannot skip)
 21. Invoke `@code-reviewer` with the **Delegation Payload** including:
@@ -244,7 +253,8 @@ Before committing, verify every item:
 - [ ] Documentation updated via `@docs-writer` (completion report received)
 - [ ] All subagent logs written to `.agent-logs/`
 - [ ] All dashboard events emitted for every gate
-- [ ] Test specs exist from @test-lead (or fallback documented)
+- [ ] Test specs from @test-lead EXIST for this workstream (REQUIRED — no fallback)
+- [ ] ALL test cases from test spec implemented and passing (plan-compliance verified)
 - [ ] Test documentation included by @docs-writer
 
 🛑 **If ANY checkbox is FALSE**: Do NOT commit. Go back and complete the missing gate.

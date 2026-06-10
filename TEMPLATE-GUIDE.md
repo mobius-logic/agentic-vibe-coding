@@ -148,17 +148,20 @@ For smaller features or when you already know the architecture, you can go direc
 7. Each subagent receives the **plan reference** so they understand context
 8. After coding → testing → docs → review, the lead reports completion
 
-#### Test Planning Workflow (Parallel with Development)
+#### Test Planning Workflow (Wave 0 — Before Development)
 
-After the architect produces plans and leads present their execution plans:
+After the architect produces plans and BEFORE leads start their workstreams:
 
-1. You invoke `@test-lead` with the architecture plan and workstream execution plans
+1. The architect invokes `@test-lead` with the architecture plan and all workstream briefs (Wave 0)
 2. The test-lead reads ALL plans and produces test specifications for each workstream
 3. Test specs are written to `.test-specs/project/` (one file per workstream)
-4. When team leads reach Gate 3 (Testing), they use the test-lead's specs as PRIMARY input for `@tester`
-5. This ensures tests are designed from requirements/plans, not just the implementation
+4. Only AFTER test specs exist does the architect delegate to workstream leads (or instruct the human to do so)
+5. When team leads reach Gate 3 (Testing), they pass the test-lead's specs to `@tester` as the PRIMARY input
+6. The tester writes plan-compliance tests — verifying code matches the plan, not just that code runs
 
 > **Key principle**: Test-lead NEVER looks at implementation code. Tests are derived purely from the architectural plan and acceptance criteria. This catches implementation drift from the design.
+
+> **Hard requirement**: Leads will BLOCK at Gate 2.5 if test specs don't exist. There is no fallback. The architect must ensure test-lead runs first.
 
 ### Referencing Plans and Architecture Documents
 - All approved architectures and plans live in `.plans/project/` with date-timestamps
@@ -236,6 +239,7 @@ You are the human orchestrator. Agents write code — you control architecture a
 | 6 | Review the **Launch Plan** — number of waves, Codespace count per wave, sync points |
 | 7 | Review the **mode-aware workstream task briefs** the architect produces |
 | 8 | Choose: copy-paste briefs to separate sessions/Codespaces following the Launch Plan, or tell the architect to delegate |
+| 9 | Verify @test-lead has been invoked (Wave 0) — check that `.test-specs/project/` contains specs for all workstreams before any lead starts |
 
 ### Phase 1: Parallel Workstreams (e.g. Infra + Backend)
 
@@ -306,7 +310,8 @@ The Launch Plan's "Sequential Fallback Order" section gives you the exact sequen
 | Architect asks about execution mode | Answer: local VS Code (sequential), Codespaces (parallel), or constrained parallel with slot count |
 | Architect presents Launch Plan | Review wave structure, Codespace count, sync points, then confirm |
 | Architect produces workstream briefs | Follow the Launch Plan — open Codespaces per wave (parallel) or run leads in order (sequential) |
-| Leads present execution plans | Invoke `@test-lead` with the architecture plan and workstream plans — it produces test specs in parallel with development |
+| Leads present execution plans | Architect has already invoked @test-lead (Wave 0) — specs should exist in `.test-specs/` |
+| Lead says "BLOCKED at Gate 2.5" | Invoke @test-lead with the architecture plan and workstream briefs — lead cannot proceed without specs |
 | Agent presents a plan | Review it carefully, suggest changes, then approve |
 | Agent says "done" | Check `git log`, skim files, then `git push origin <branch>` |
 | Agent made a mistake | Tell it what's wrong in the same chat session |

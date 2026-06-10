@@ -356,6 +356,12 @@ Save the Launch Plan to `.plans/project/<YYYY-MM-DD>-<HHMMSS>-launch-plan-<proje
 
 ## Execution Schedule
 
+### Wave 0 — Test Specifications (MANDATORY prerequisite for all waves)
+- **Agent**: @test-lead
+- **Input**: Architecture plan + all workstream briefs
+- **Output**: Test specs in `.test-specs/project/` (one per workstream)
+- **Sync point**: ALL subsequent waves are BLOCKED until Wave 0 completes. Leads will hard-block at Gate 2.5 without these specs.
+
 ### Wave 1 — <description>
 - **Parallel slots used**: <N>
 - **Workstreams**:
@@ -474,36 +480,43 @@ Present all workstream briefs to the human and ask:
   - **Parallel mode**: "Open N Codespaces. In Codespace #1, invoke @<lead> with brief #1..." etc.
   - **Sequential mode**: "In your current VS Code window, invoke @<lead> with brief #1. After it completes and merges, invoke @<lead> with brief #2..." etc.
 
-### Test Planning (Parallel with Development)
+### Phase 5.5: Test-Lead Invocation (MANDATORY — Cannot Skip)
 
-After presenting workstream briefs, remind the human (or invoke directly if delegating):
-- Invoke `@test-lead` with the architecture plan and all approved workstream execution plans
-- The test-lead runs IN PARALLEL with workstream leads — it produces test specs from plans while developers write code
-- Test specs will be available by the time leads reach Gate 3
+After producing workstream briefs and BEFORE delegating to any lead or presenting manual delegation instructions, you MUST ensure test specifications will exist:
 
-If delegating automatically, invoke `@test-lead` with:
+1. **If delegating automatically (Phase 6)**: You MUST invoke `@test-lead` FIRST, before invoking any workstream lead. Wait for test-lead to complete and confirm specs were written to `.test-specs/`. Do NOT proceed to Phase 6 lead delegation until test-lead returns its completion report.
+
+2. **If manual delegation**: You MUST instruct the human to invoke `@test-lead` FIRST, before pasting briefs to any lead. State clearly and prominently:
+   > "⚠️ MANDATORY: Invoke @test-lead FIRST with the architecture plan and all workstream briefs. Workstream leads will HARD BLOCK at Gate 2.5 if test specs do not exist. Do NOT start any lead until test-lead has completed."
+
+3. **The test-lead invocation payload**:
 ```
-## Test Lead Invocation
+## Test Lead Invocation (MANDATORY — Wave 0)
 - **Architecture Plan**: <path to .plans/project/ architecture file>
-- **Workstream Plans**: <list of all workstream execution plans>
-- **Task**: Produce test specifications for all workstreams based on the plans
+- **Workstream Plans**: <all workstream briefs>
+- **Task**: Produce test specifications for ALL workstreams. Tests must define plan-compliance validation — what the code MUST do according to the architecture.
+- **Output**: One test spec per workstream in `.test-specs/project/`
+- **CRITICAL**: These specs are REQUIRED by all workstream leads. Leads CANNOT proceed past Gate 2.5 without them. There is NO fallback.
 ```
 
-If the human prefers manual delegation, include the test-lead invocation in the execution instructions:
-- **Parallel mode**: "Also invoke `@test-lead` alongside Wave 1 workstreams with the architecture plan and all workstream briefs."
-- **Sequential mode**: "Before starting the first workstream lead, invoke `@test-lead` with the architecture plan and all workstream briefs. It can run in a separate chat session in parallel."
+4. **Gate check**: Verify test specs exist in `.test-specs/` before proceeding to Phase 6.
+
+**HARD RULE**: The architect MUST NOT delegate to workstream leads until test-lead has been invoked and completed (automatic) or the human has been given explicit BLOCKING instructions (manual). The Launch Plan MUST include test-lead as "Wave 0" — a prerequisite for all workstream waves.
 
 ### Phase 6: Delegation (Optional — Only When Instructed)
 
+**PRE-CHECK (MANDATORY)**: Before delegating to ANY workstream lead, verify that test specs exist in `.test-specs/`. If test-lead has not been invoked (Phase 5.5), you MUST invoke it first. Do NOT delegate to leads without test specs — they will hard-block at Gate 2.5.
+
 If the human asks you to **delegate directly**:
 
-1. For each workstream, invoke the appropriate team lead subagent (`@backend-lead`, `@frontend-lead`, `@infra-lead`) with the task brief as the prompt
-2. **Include the Architect Handshake Payload** in every delegation (see below)
-3. **Respect the Launch Plan execution schedule**:
+1. **Verify test specs exist** in `.test-specs/project/` for all workstreams about to be delegated. If they do not exist, STOP and invoke `@test-lead` first (Phase 5.5).
+2. For each workstream, invoke the appropriate team lead subagent (`@backend-lead`, `@frontend-lead`, `@infra-lead`) with the task brief as the prompt
+3. **Include the Architect Handshake Payload** in every delegation (see below)
+4. **Respect the Launch Plan execution schedule**:
    - In **parallel mode**: Start all workstreams in the current wave simultaneously, wait for all to complete before starting the next wave
    - In **sequential mode**: Start workstreams one at a time in the prescribed order
    - In **constrained parallel mode**: Start workstreams up to the slot limit per sub-wave
-4. Report progress back to the human as each lead completes its planning phase, including wave transitions
+5. Report progress back to the human as each lead completes its planning phase, including wave transitions
 
 #### Architect → Lead Handshake Payload
 
