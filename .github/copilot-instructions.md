@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2026 Mobius Logic, Inc. All rights reserved. PROPRIETARY AND CONFIDENTIAL. -->
 # Project Standards
 
 ## Architect-First Protocol (MANDATORY)

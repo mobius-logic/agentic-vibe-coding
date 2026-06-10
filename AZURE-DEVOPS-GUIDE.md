@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2026 Mobius Logic, Inc. All rights reserved. PROPRIETARY AND CONFIDENTIAL. -->
 # Azure DevOps - Create a New Project from This Template
 
 This guide walks you through creating a new Azure DevOps project and repo that

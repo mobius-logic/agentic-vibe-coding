@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2026 Mobius Logic, Inc. All rights reserved. PROPRIETARY AND CONFIDENTIAL. -->
 # Agentic Vibe Coding
 
 > **Template documentation**: For instructions on how the multi-agent workflow, agent roles,

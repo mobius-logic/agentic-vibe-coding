@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2026 Mobius Logic, Inc. All rights reserved. PROPRIETARY AND CONFIDENTIAL. -->
 # Agentic Vibe Coding — Template Guide
 
 > **This file documents how to use this template repository.** It is intentionally separate
