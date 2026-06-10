@@ -22,3 +22,18 @@
 - **Fixes Applied**: test-lead was not discoverable by the architect because it was missing from the `agents:` frontmatter list; workflow lacked explicit instructions on WHO invokes it and WHEN
 - **Lessons Learned**: Agent discoverability depends on being listed in the parent agent's `agents:` frontmatter field
 - **Status**: done
+## 2026-06-09 21:30:50 — Session Summary
+- **Plan**: .plans/template/2026-06-09-212522-architecture-e2e-integration-testing.md
+- **Branch**: feature/infra/mandatory-test-lead-enforcement
+- **Commit**: 6924cf4 (uncommitted changes)
+- **Tasks Completed**:
+  - Added End-to-End Integration Tests section to test-lead Phase 2 and output format
+  - Added Integration Test Implementation section to tester agent
+  - Added Gate 3.5 (Integration Testing) to backend-lead, frontend-lead, and infra-lead
+  - Updated architect Phase 3 template with e2e integration test scenarios
+  - Added Integration Testing section to copilot-instructions.md
+  - Updated TEMPLATE-GUIDE.md with integration testing documentation and decision cheat sheet entry
+- **Files Changed**: .github/agents/test-lead.agent.md, .github/agents/tester.agent.md, .github/agents/backend-lead.agent.md, .github/agents/frontend-lead.agent.md, .github/agents/infra-lead.agent.md, .github/agents/architect.agent.md, .github/copilot-instructions.md, TEMPLATE-GUIDE.md
+- **Fixes Applied**: None
+- **Lessons Learned**: Gate 3.5 content must be consistent across all three lead agents with only the lead-name and workstream differing
+- **Status**: done

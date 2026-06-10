@@ -55,6 +55,15 @@ For each workstream, produce a test specification document:
 2. **Integration Tests**: Define test cases for inter-module communication and API contracts
 3. **Edge Cases & Error Scenarios**: Identify boundary conditions, failure modes, invalid inputs
 4. **Acceptance Criteria Verification**: Map each acceptance criterion from the plan to specific test cases
+5. **End-to-End Integration Tests**: Define complete user-flow scenarios that exercise the full feature as specified in the architect's plan. For each scenario, specify:
+   - Prerequisites (services, databases, external dependencies that must be available)
+   - Environment setup steps (install commands, configuration, seed data)
+   - Step-by-step user actions (the complete flow from the plan's acceptance criteria)
+   - Expected end state (database state, API responses, UI state, side effects)
+   - Teardown steps (cleanup to ensure idempotency)
+   - **Execution preference**: Local (preferred) or CI-required (must justify why local is not feasible)
+
+> **Integration test philosophy**: These scenarios validate the feature works as a COHESIVE WHOLE — not just individual modules. They should exercise the real user journey from the architect's plan. Prefer scenarios that can run locally with minimal infrastructure (docker-compose, local servers, in-memory databases). Only specify CI-required when hardware or external services cannot be simulated.
 
 ### Phase 3: Write Specifications
 
@@ -100,6 +109,30 @@ Each test specification document MUST follow this format:
 | Acceptance Criterion (from plan) | Test Case(s) |
 |----------------------------------|--------------|
 | <criterion>                      | <test refs>  |
+
+## End-to-End Integration Tests
+
+### Scenario: <user-flow-name-from-plan>
+- **Prerequisites**: <services, databases, tools that must be running>
+- **Setup**:
+  1. <install command or setup step>
+  2. <seed data or config>
+  3. <start dependent services (e.g., docker-compose up)>
+- **Steps**:
+  1. <user action / API call / trigger>
+  2. <expected intermediate state>
+  3. <next step in the flow>
+  4. ...
+- **Expected End State**:
+  - <assertion about final system state>
+  - <assertion about side effects (emails sent, files created, etc.)>
+- **Teardown**:
+  1. <stop services>
+  2. <clean up data>
+- **Execution**: Local / CI-required (reason: <why CI is needed if applicable>)
+- **Timeout**: <max duration before test is considered failed>
+
+(Repeat for each end-to-end scenario from the architect's plan)
 ```
 
 ## Agent Memory Log
