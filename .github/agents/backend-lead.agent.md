@@ -143,8 +143,6 @@ Before starting any work, determine your delegation capability:
    - Present it to the human with: "Please paste this to @<agent> in a new chat and send me back the Completion Report"
    - Wait for the human to relay the subagent's Completion Report
    - Process the report exactly as in normal mode (check "Log Written", verdict, etc.)
-   - Emit `subagent-invoked` events as normal for dashboard tracking
-   - Emit at session start: `node dashboard/lib/emit-event.js backend-lead fallback-mode --detail "tier-1" --workstream backend`
 
 3. **If Tier 2 (Self-Execution)**:
    - You have the human's blanket approval to perform all subagent work yourself
@@ -156,7 +154,6 @@ Before starting any work, determine your delegation capability:
      - Gate 5: Write docs (as @docs-writer), write to `.agent-logs/<context>/docs-writer-log.md`
    - Each role's log MUST include: `- **Execution Mode**: fallback-self-execution (subagent unavailable)`
    - At Gate 7, your lead session log MUST note: "Fallback self-execution mode � all roles performed by lead"
-   - Emit at session start: `node dashboard/lib/emit-event.js backend-lead fallback-mode --detail "tier-2" --workstream backend`
 
 ## Workflow
 
@@ -180,29 +177,24 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
 
 #### GATE 1: Branch Creation
 7. Create the feature branch: `git checkout -b feature/backend/<name>`
-8. Emit dashboard event: `branch-created`
-9. **Gate check**: Verify branch exists with `git branch --list`
+8. **Gate check**: Verify branch exists with `git branch --list`
 
 #### GATE 2: Implementation (repeat per task)
-10. Emit dashboard event: `task-started`
-11. Invoke `@developer` with the **Delegation Payload** (see §Delegation Payload below)
-12. Emit dashboard event: `subagent-invoked --detail "@developer: <task>"`
-13. **Read the developer's completion report** and verify:
+10. Invoke `@developer` with the **Delegation Payload** (see §Delegation Payload below)
+11. **Read the developer's completion report** and verify:
     - All files listed were created/modified
     - "Log Written" field is "yes" — if "no", instruct developer to write log before continuing
     - Status is "done"
-14. Emit dashboard event: `task-completed`
-15. **Gate check**: Developer returned a valid completion report with status "done"
+12. **Gate check**: Developer returned a valid completion report with status "done"
 
 #### GATE 2.5: Test Spec Readiness (HARD BLOCKER — No Fallback)
 - Check `.test-specs/project/` (or `.test-specs/template/`) for a test spec covering this workstream
 - Read the test spec to confirm it covers the implemented features and acceptance criteria
 - **Gate check**: Test spec file EXISTS and covers this workstream's acceptance criteria
 - 🛑 **If test specs do NOT exist**:
-  1. Emit event: `node dashboard/lib/emit-event.js backend-lead blocked --detail "Test specs missing — cannot proceed past Gate 2.5. @test-lead must run first." --workstream backend`
-  2. Inform the human: "**BLOCKED**: Test specifications from @test-lead do not exist for this workstream. I cannot proceed to Gate 3 (Testing). Please invoke @test-lead with the architecture plan to produce test specs, then tell me to continue."
-  3. STOP and WAIT — do NOT proceed until human confirms test specs now exist
-  4. Re-verify `.test-specs/` contains specs for this workstream before proceeding
+  1. Inform the human: "**BLOCKED**: Test specifications from @test-lead do not exist for this workstream. I cannot proceed to Gate 3 (Testing). Please invoke @test-lead with the architecture plan to produce test specs, then tell me to continue."
+  2. STOP and WAIT — do NOT proceed until human confirms test specs now exist
+  3. Re-verify `.test-specs/` contains specs for this workstream before proceeding
 - ❌ **NO FALLBACK**: Do NOT proceed with developer's suggested tests as a substitute. The purpose of plan-based testing is to verify code matches the plan, not to verify code works as the developer intended. Developer suggestions are supplementary ONLY — they cannot replace test-lead specs.
 
 #### GATE 3: Testing — Plan Compliance Validation (MANDATORY — cannot skip)
@@ -211,14 +203,12 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
     - **Primary Directive**: "Write tests that verify the implementation matches the architect's plan. The test spec defines WHAT the code must do. Your tests validate plan compliance — not just that the code runs without errors."
     - Expected test coverage: ALL test cases from the test spec must be implemented
     - Developer's "Suggested Tests" may be included as supplementary context only
-17. Emit dashboard event: `subagent-invoked --detail "@tester: plan-compliance validation for <scope>"`
-18. **Read the tester's completion report** and verify:
+17. **Read the tester's completion report** and verify:
     - "Verdict" is "ALL PASS"
     - "All Spec Cases Covered" is "Yes"
     - "Log Written" field is "yes"
-19. **Gate check**: Tester verdict is "ALL PASS" AND all spec test cases were implemented
-20. Push events to remote: `node dashboard/lib/push-events.js --workstream backend`
-21. 🛑 **If tests fail**: This means the developer's code DEVIATES from the architect's plan. Loop back to GATE 2 — invoke @developer to fix the code to match the plan specification (do NOT ask @tester to weaken the tests). Then re-run GATE 3.
+18. **Gate check**: Tester verdict is "ALL PASS" AND all spec test cases were implemented
+19. 🛑 **If tests fail**: This means the developer's code DEVIATES from the architect's plan. Loop back to GATE 2 — invoke @developer to fix the code to match the plan specification (do NOT ask @tester to weaken the tests). Then re-run GATE 3.
 
 #### GATE 3.5: Integration Testing — End-to-End Plan Validation (MANDATORY if spec includes e2e tests)
 - Check the test spec's "End-to-End Integration Tests" section
@@ -228,15 +218,13 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
      - **Test Specs Reference** (REQUIRED): same `.test-specs/` file — focus on the "End-to-End Integration Tests" section
      - **Primary Directive**: "These tests validate the COMPLETE feature works end-to-end. Set up the full environment locally (preferred). Create a CI workflow only if local execution is genuinely not feasible for a scenario. Every scenario in the spec must be implemented and passing."
      - **Acceptance Criteria**: ALL e2e scenarios from the spec pass locally OR CI workflow created and passing for CI-required scenarios
-  2. Emit dashboard event: `subagent-invoked --detail "@tester: e2e integration testing for <scope>"`
-  3. **Read the tester's integration test completion report** and verify:
+  2. Invoke `@tester` with a SECOND delegation specifically for integration tests:
      - ALL scenarios from the spec are implemented
      - ALL scenarios pass (locally or via CI)
      - Integration test command documented
   4. **Gate check**: All e2e integration test scenarios pass
   5. 🛑 **If integration tests fail**:
      - This indicates a systemic issue — the feature does not work end-to-end as planned
-     - Emit event: `node dashboard/lib/emit-event.js backend-lead integration-test-failure --detail "E2E scenario '<name>' failed: <brief reason>" --workstream backend`
      - **Escalate to human**: "**INTEGRATION TEST FAILURE**: End-to-end scenario '<name>' failed. This may indicate the implementation does not satisfy the architect's plan as a whole, or that cross-module integration is broken. Requesting guidance."
      - **With human approval**: Loop back to GATE 2 — invoke @developer with specific integration fix instructions. After fix, re-run GATE 3 (unit tests) AND GATE 3.5 (integration tests). Do NOT skip re-validation.
 - **If no e2e section exists in the spec** (trivial/isolated change): Note in Gate 6 checklist why integration tests are not applicable (e.g., "documentation-only change", "single utility function with no integration points").
@@ -245,12 +233,10 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
 21. Invoke `@code-reviewer` with the **Delegation Payload** including:
     - Branch name for `git diff main...<branch>`
     - Plan reference for context
-22. Emit dashboard event: `subagent-invoked --detail "@code-reviewer: <branch>"`
 23. **Read the code reviewer's report** and verify:
     - "Verdict" is "APPROVE"
     - "Log Written" field is "yes"
 24. **Gate check**: Code reviewer verdict is "APPROVE"
-25. Push events to remote: `node dashboard/lib/push-events.js --workstream backend`
 26. 🛑 **If "REQUEST CHANGES"**: Loop back to GATE 2 to fix issues, then re-run GATE 3 and GATE 4
 
 #### GATE 5: Documentation (MANDATORY — cannot skip)
@@ -259,7 +245,6 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
     - Update `README.md` with any new features, setup steps, or API docs
     - Create/update relevant docs in `docs/` if needed
     - **Test Specs Reference**: .test-specs/<project|template>/<date>-<workstream>-test-spec.md
-27. Emit dashboard event: `subagent-invoked --detail "@docs-writer: <scope>"`
 28. **Read the docs-writer's completion report** and verify:
     - "Log Written" field is "yes"
     - Files were actually updated
@@ -272,7 +257,6 @@ Before committing, verify every item:
 - [ ] Code review approved via `@code-reviewer` (verdict: APPROVE)
 - [ ] Documentation updated via `@docs-writer` (completion report received)
 - [ ] All subagent logs written to `.agent-logs/`
-- [ ] All dashboard events emitted for every gate
 - [ ] Test specs from @test-lead EXIST for this workstream (REQUIRED — no fallback)
 - [ ] ALL test cases from test spec implemented and passing (plan-compliance verified)
 - [ ] Integration tests pass (Gate 3.5) OR documented as not applicable with justification
@@ -283,8 +267,6 @@ Before committing, verify every item:
 #### GATE 7: Commit & Report
 30. Commit all changes with descriptive message: `<type>(backend): <description>`
 31. Write your own session log to the appropriate `.agent-logs/` subdirectory (see Agent Memory Log below)
-32. Emit dashboard event: `session-complete --status done`
-33. Push events to remote: `node dashboard/lib/push-events.js --workstream backend`
 34. Report to human with full summary including all subagent reports
 
 ### Delegation Payload Format
@@ -301,8 +283,6 @@ Every time you invoke a subagent, you MUST pass this structured context:
 - **Acceptance Criteria**: <what "done" looks like>
 - **Files to Create/Modify**: <list of file paths>
 - **Context**: <any additional context or dependencies>
-
-**IMPORTANT**: Always include `--workstream backend` in the delegation payload. Subagents MUST use this value in all their `emit-event.js` calls.
 ```
 
 ## Agent Memory Log
@@ -345,58 +325,6 @@ Use this format for each entry:
 **NOTE**: Since you do not have the `edit` tool, use the terminal append commands shown in the "Writing Your Session Log" section above.
 
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
-
-## Agent Monitor Events (MANDATORY)
-You MUST emit dashboard events at every key milestone so the human can track your progress in real time on the Agent Monitor Dashboard. Run these commands in the terminal:
-
-**IMPORTANT**: All `emit-event.js` calls MUST include `--workstream backend` to route events to the correct per-workstream event file.
-
-**Session start** (run FIRST thing when you begin):
-```
-node dashboard/lib/emit-event.js backend-lead spawned --parent "architect" --workstream backend
-```
-
-**When reasoning/analyzing** (when planning execution, analyzing plan, preparing delegation):
-```
-node dashboard/lib/emit-event.js backend-lead thinking --detail "<brief one-line summary of current reasoning>" --workstream backend
-```
-
-**When updating task list** (after using manage_todo_list):
-```
-node dashboard/lib/emit-event.js backend-lead todo-update --todos '<JSON array of {id, title, status}>' --workstream backend
-```
-
-**When you read/load a plan**:
-```
-node dashboard/lib/emit-event.js backend-lead plan-loaded --plan ".plans/<filename>.md" --taskTotal <N> --workstream backend
-```
-
-**When you create a feature branch**:
-```
-node dashboard/lib/emit-event.js backend-lead branch-created --branch "feature/backend/<name>" --workstream backend
-```
-
-**When you START each task** (run before delegating to subagent):
-```
-node dashboard/lib/emit-event.js backend-lead task-started --task "<description>" --taskIndex <N> --taskTotal <total> --workstream backend
-```
-
-**When each task is COMPLETED** (run after subagent returns):
-```
-node dashboard/lib/emit-event.js backend-lead task-completed --task "<description>" --taskIndex <N> --taskTotal <total> --workstream backend
-```
-
-**When you invoke a subagent**:
-```
-node dashboard/lib/emit-event.js backend-lead subagent-invoked --detail "@developer: <task>" --workstream backend
-```
-
-**Session end**:
-```
-node dashboard/lib/emit-event.js backend-lead session-complete --status done --workstream backend
-```
-
-Emit events generously — every meaningful step should be logged so the dashboard reflects your real-time progress. If `dashboard/` does not exist in the project, skip this section.
 
 ## Constraints
 - DO NOT write application code yourself — delegate to @developer

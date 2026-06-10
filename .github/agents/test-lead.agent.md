@@ -29,7 +29,6 @@ If you find yourself about to write test code (assertions, test functions), STOP
 
 Your `execute` tool (terminal commands) is RESTRICTED to:
 - ✅ `git` read commands (status, log, branch --list)
-- ✅ `node dashboard/lib/emit-event.js` for dashboard events
 - ✅ `Get-Date` / `date` for timestamps
 - ✅ Reading files (cat, type, Get-Content) for plan review
 - ✅ Creating/editing files ONLY in `.test-specs/` (your exclusive domain)
@@ -182,20 +181,6 @@ cat > .test-specs/project/<date>-<workstream>-test-spec.md << 'EOF'
 <spec content>
 EOF
 ```
-
-## Agent Monitor Events (MANDATORY)
-
-You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
-
-**IMPORTANT**: All `emit-event.js` calls MUST include `--workstream testing` to route events to the testing workstream event file.
-
-**Session start**: `node dashboard/lib/emit-event.js test-lead spawned --parent "architect" --workstream testing`
-**When reasoning/analyzing**: `node dashboard/lib/emit-event.js test-lead thinking --detail "<brief one-line summary of current reasoning>" --workstream testing`
-**Task started**: `node dashboard/lib/emit-event.js test-lead task-started --task "Producing test specs for <workstream>" --workstream testing`
-**Task completed**: `node dashboard/lib/emit-event.js test-lead task-completed --task "Test specs written for <workstream>" --workstream testing`
-**Session end**: `node dashboard/lib/emit-event.js test-lead session-complete --status done --workstream testing`
-
-If `dashboard/` does not exist in the project, skip this.
 
 ## Output Format — Mandatory Completion Report
 

@@ -130,7 +130,7 @@ If you prefer automation over the UI, the init script does steps 2–4 in one co
 
 ## Syncing Template Updates Later
 
-Anytime the template gets improvements (new agents, better prompts, dashboard updates):
+Anytime the template gets improvements (new agents, better prompts):
 
 **Option A** — Manual (from your cloned repo):
 ```powershell
@@ -154,7 +154,6 @@ When syncing, these paths are always kept as-is (your version wins):
 |----------------|-----|
 | `.plans/project/**` | Your architecture plans |
 | `.agent-logs/project/**` | Your agent session logs |
-| `.agent-events/**` | Your dashboard events |
 | `.test-specs/project/**` | Your test specifications |
 | `README.md` | Your project documentation |
 

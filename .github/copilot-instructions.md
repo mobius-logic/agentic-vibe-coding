@@ -78,61 +78,6 @@ This project uses a multi-agent workflow. **All non-trivial changes MUST go thro
 - **Only `@architect` may create or edit files in `.plans/`** — team leads and all other agents treat `.plans/` as read-only
 - Agent logs in `.agent-logs/project/` (or `.agent-logs/template/`) must include plan references and full timestamps
 
-## Agent Monitor Dashboard
-- An optional web-based dashboard is available at `dashboard/`
-- Launch with `node dashboard/start.js` (opens at http://127.0.0.1:4820)
-- The dashboard reads `.agent-logs/`, `.plans/`, `.agent-events/`, and git branch data
-- Agents may write structured events to `.agent-events/events.jsonl` using `dashboard/lib/log-event.js`
-- The dashboard is purely additive — it does not affect existing agent behavior
-
-### Dashboard v2 Event Types
-Agents emit events via `node dashboard/lib/emit-event.js <agent> <event> [options]`.
-
-| Event | Who | When | Example |
-|-------|-----|------|---------|
-| `session-start` | architect only | First command of new session | `...architect session-start --plan ".plans/file.md"` |
-| `spawned --parent` | all agents | When starting work | `...agent spawned --parent "parent-agent"` |
-| `thinking` | all agents | Major reasoning milestones | `...agent thinking --detail "Analyzing requirements"` |
-| `todo-update` | agents with task lists | After manage_todo_list | `...agent todo-update --todos '[{...}]'` |
-
-Note: `session-start` triggers a full dashboard data wipe. Only the architect should emit it.
-
-### Multi-Workstream Event Protocol
-
-When multiple workstreams run in parallel (e.g., in separate Codespaces), the dashboard supports per-workstream event files and cross-Codespace event transport.
-
-#### Per-Workstream Event Files
-
-Events are routed to workstream-specific files based on the `--workstream` flag:
-
-| Workstream | Event File |
-|------------|------------|
-| _(none / architect)_ | `.agent-events/events.jsonl` |
-| `backend` | `.agent-events/events-backend.jsonl` |
-| `frontend` | `.agent-events/events-frontend.jsonl` |
-| `infra` | `.agent-events/events-infra.jsonl` |
-
-Usage: `node dashboard/lib/emit-event.js <agent> <event> --workstream <name> [options]`
-
-Lead agents MUST include `--workstream <name>` on ALL `emit-event.js` calls. Subagents inherit the workstream from the lead's Delegation Payload and use the `{{WORKSTREAM}}` placeholder.
-
-#### Cross-Codespace Event Transport
-
-Events are transported between Codespaces via the `agent-events` orphan git branch:
-
-- **`node dashboard/lib/push-events.js --workstream <name>`** — Commits and force-pushes the workstream's event file to the `agent-events` branch. Called by lead agents after gates 3, 4, and 7.
-- **`node dashboard/lib/push-events.js --all`** — Pushes all local event files. Used by the architect after saving plans and delegation.
-- **`node dashboard/lib/push-events.js --all --wipe`** — Clears the remote branch first (used at session-start by architect).
-- **`node dashboard/lib/pull-events.js`** — Fetches the `agent-events` branch and copies all `events-*.jsonl` files to local `.agent-events/`. Used by the architect to monitor workstream progress.
-
-#### The `agent-events` Orphan Branch
-
-A git orphan branch named `agent-events` stores event files without polluting the main branch history. The branch is created automatically by `push-events.js` if it doesn't exist. Each workstream owns its event file exclusively — no merge conflicts.
-
-#### Continuous Monitoring
-
-Set `DASHBOARD_GIT_POLL=true` before starting the dashboard server to enable automatic 5-second polling that fetches workstream events from the `agent-events` branch. This keeps the dashboard updated in real time when workstreams run in separate Codespaces.
-
 ## Strict Delegation Protocol (MANDATORY)
 
 All lead agents (backend-lead, frontend-lead, infra-lead) MUST follow the **7-Gate Mandatory Execution Sequence** when executing work. No gate may be skipped.
@@ -142,13 +87,13 @@ Leads MUST delegate to subagents — they must NEVER write code, run tests, revi
 
 | Agent Category | `edit` Tool | `execute` Scope | File Permissions |
 |----------------|------------|-----------------|------------------|
-| **Architect** (`@architect`) | ❌ No | git read, dashboard events, timestamps, own log, `.plans/` files only | Create/edit `.plans/` and own session log only |
-| **Leads** (`@backend-lead`, `@frontend-lead`, `@infra-lead`) | ❌ No | git ops, dashboard events, own log only | Own session log only |
+| **Architect** (`@architect`) | ❌ No | git read, timestamps, own log, `.plans/` files only | Create/edit `.plans/` and own session log only |
+| **Leads** (`@backend-lead`, `@frontend-lead`, `@infra-lead`) | ❌ No | git ops, own log only | Own session log only |
 | **Code Reviewer** (`@code-reviewer`) | ❌ No | git diff, read-only inspection, own log only | Own session log only |
-| **Test Lead** (`@test-lead`) | ❌ No | git read, dashboard events, own log, `.test-specs/` file creation | `.test-specs/` and own session log only |
+| **Test Lead** (`@test-lead`) | ❌ No | git read, own log, `.test-specs/` file creation | `.test-specs/` and own session log only |
 | **Coders** (`@developer`, `@tester`, `@docs-writer`) | ✅ Yes | Full terminal access | Full file creation/modification |
 
-Non-coding agents must NEVER use the `execute` tool to create, edit, or delete application code, test files, config files, or documentation. The `execute` tool is restricted to: git operations, dashboard event emission, timestamp retrieval, and appending to the agent's own session log.
+Non-coding agents must NEVER use the `execute` tool to create, edit, or delete application code, test files, config files, or documentation. The `execute` tool is restricted to: git operations, timestamp retrieval, and appending to the agent's own session log.
 
 | Gate | Required Action | Cannot Proceed Until |
 |------|----------------|---------------------|
@@ -161,7 +106,7 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 | 4 | Code Review | `@code-reviewer` returns verdict "APPROVE" |
 | 5 | Documentation | `@docs-writer` returns completion report |
 | 6 | Pre-Commit Checklist | All 8 checkboxes verified TRUE |
-| 7 | Commit & Report | Session log written, events emitted |
+| 7 | Commit & Report | Session log written |
 
 ### Delegation Rules
 - Leads MUST pass a **Delegation Payload** (plan ref, branch, task, acceptance criteria) to every subagent
@@ -170,7 +115,7 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 - If `@tester` reports failures → loop back to `@developer`, then re-test
 - If `@code-reviewer` requests changes → loop back to `@developer`, re-test, re-review
 - NEVER skip `@tester`, `@code-reviewer`, or `@docs-writer` — all three are mandatory
-- All agents MUST write session logs to `.agent-logs/project/` (or `.agent-logs/template/`) and emit dashboard events
+- All agents MUST write session logs to `.agent-logs/project/` (or `.agent-logs/template/`)
 
 ### Test-Lead Invocation (MANDATORY — Hard Requirement, No Fallback)
 - The `@test-lead` MUST be invoked BEFORE any workstream lead begins work (Wave 0)
@@ -206,8 +151,6 @@ The `runSubagent` tool may not be available in all VS Code Copilot Chat sessions
 **Detection**: Leads check for runSubagent availability at session start (Step 0, before Gate 0).
 
 **Tier 2 constraints**: Even in self-execution mode, leads MUST follow the 7-gate sequence, write separate logs per role (developer-log, tester-log, code-reviewer-log, docs-writer-log), and note `Execution Mode: fallback-self-execution` in each log.
-
-**Dashboard**: Leads emit a `fallback-mode` event with detail `tier-1` or `tier-2` so the dashboard shows when fallback is active.
 
 **Architect**: Only supports Tier 1 (manual delegation payloads). The architect must never self-execute implementation work.
 

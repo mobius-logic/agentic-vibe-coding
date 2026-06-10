@@ -1,7 +1,7 @@
 # Agentic Vibe Coding
 
 > **Template documentation**: For instructions on how the multi-agent workflow, agent roles,
-> planning process, dashboard, and orchestration runbook work, see [TEMPLATE-GUIDE.md](TEMPLATE-GUIDE.md).
+> planning process, and orchestration runbook work, see [TEMPLATE-GUIDE.md](TEMPLATE-GUIDE.md).
 
 ## Project Overview
 

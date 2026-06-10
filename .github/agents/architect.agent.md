@@ -34,7 +34,6 @@ If you find yourself about to fix a bug, STOP and delegate to the appropriate `@
 
 Your `execute` tool (terminal commands) is RESTRICTED to:
 - ✅ `git` read commands (status, log, branch --list, diff)
-- ✅ `node dashboard/lib/emit-event.js` and `push-events.js` / `pull-events.js`
 - ✅ `Get-Date` / `date` for timestamps
 - ✅ `echo $env:CODESPACES` for environment detection
 - ✅ Reading files (cat, type, Get-Content) for plan review
@@ -62,7 +61,6 @@ Before starting Phase 0, determine your delegation capability:
    - If **YES** -> Normal mode. You can invoke leads directly in Phase 6 if instructed.
    - If **NO** -> You are in **manual delegation mode** only.
      Inform the human: "Subagent invocation is unavailable. I will prepare complete delegation payloads for each lead. You will need to paste them into separate agent chat sessions."
-     Emit: `node dashboard/lib/emit-event.js architect fallback-mode --detail "tier-1"`
 
 Note: The architect does NOT support Tier 2 self-execution. The architect's role is design and planning � it must NEVER write application code, tests, or documentation regardless of tool availability. If leads also cannot invoke subagents, each lead will independently detect this and offer their own Tier 1/Tier 2 choice to the human.
 
@@ -419,11 +417,6 @@ as the ONLY placeholders for instance-specific values.
 
 Present the Launch Plan to the human for review and confirmation before proceeding to workstream decomposition.
 
-#### Step 4: Emit Dashboard Event
-
-```
-node dashboard/lib/emit-event.js architect plan-saved --plan ".plans/project/<launch-plan>.md" --detail "Launch plan saved (mode: <mode>)"
-```
 
 ### Phase 5: Workstream Decomposition
 
@@ -586,122 +579,6 @@ Use this format for each entry:
 ```
 
 Before starting work, READ your memory log to review prior sessions and continue where you left off.
-
-## Agent Monitor Events (MANDATORY)
-You MUST emit dashboard events at every key milestone so the human can track your progress in real time on the Agent Monitor Dashboard. Run these commands in the terminal:
-
-**Session start** (run VERY FIRST — before anything else, triggers dashboard data wipe):
-```
-node dashboard/lib/emit-event.js architect session-start
-```
-Once you know the plan path, re-emit with the plan reference:
-```
-node dashboard/lib/emit-event.js architect session-start --plan ".plans/<file>.md"
-```
-
-**Push session-start to remote** (clears the `agent-events` orphan branch for a fresh session):
-```
-node dashboard/lib/push-events.js --all --wipe
-```
-
-**Spawned** (run immediately after session-start):
-```
-node dashboard/lib/emit-event.js architect spawned --parent ""
-```
-
-**When reasoning/analyzing** (after each discovery round, when starting design):
-```
-node dashboard/lib/emit-event.js architect thinking --detail "<brief one-line summary of current reasoning>"
-```
-
-**When updating task list** (after using manage_todo_list):
-```
-node dashboard/lib/emit-event.js architect todo-update --todos '<JSON array of {id, title, status}>'
-```
-
-**After each discovery round / interview question**:
-```
-node dashboard/lib/emit-event.js architect question-asked --detail "Round 1: Asking about scope and users"
-```
-
-**When you start designing the architecture**:
-```
-node dashboard/lib/emit-event.js architect task-started --task "Designing system architecture" --taskIndex 1 --taskTotal 3
-```
-
-**When you refresh plan memory (Phase 0)**:
-```
-node dashboard/lib/emit-event.js architect task-started --task "Refreshing plan memory" --taskIndex 0 --taskTotal 4
-```
-
-**When you save a plan to `.plans/project/`**:
-```
-node dashboard/lib/emit-event.js architect plan-saved --plan ".plans/project/<filename>.md" --detail "Architecture document saved"
-```
-
-**When you save a launch plan** (after execution mode determination):
-```
-node dashboard/lib/emit-event.js architect plan-saved --plan ".plans/project/<launch-plan>.md" --detail "Launch plan saved (mode: <mode>)"
-```
-
-**Push events after saving plans** (ensures remote has latest architect events):
-```
-node dashboard/lib/push-events.js --all
-```
-
-**When you decompose into workstream briefs**:
-```
-node dashboard/lib/emit-event.js architect task-started --task "Decomposing into workstream briefs" --taskIndex 2 --taskTotal 3
-```
-
-**When you delegate to a lead**:
-```
-node dashboard/lib/emit-event.js architect subagent-invoked --detail "Delegating to @backend-lead"
-```
-
-**Push events after delegation** (ensures remote has latest architect events):
-```
-node dashboard/lib/push-events.js --all
-```
-
-**Check workstream progress** (pull events from all workstreams to see their status):
-```
-node dashboard/lib/pull-events.js
-```
-
-**Session end**:
-```
-node dashboard/lib/emit-event.js architect session-complete --status done
-```
-
-Emit events generously — every meaningful step should be logged so the dashboard reflects your real-time progress. If `dashboard/` does not exist in the project, skip this section.
-
-## Cross-Codespace Event Transport
-
-When workstreams run in separate Codespaces (parallel execution mode), events are transported via the `agent-events` orphan git branch.
-
-### Setting Up the Orphan Branch (Session Start)
-
-At the start of each session, ensure the `agent-events` orphan branch exists. The `push-events.js --wipe` call during session-start handles this automatically — it creates the orphan branch if it doesn't exist and clears any stale events from a previous session.
-
-### Monitoring Workstream Progress
-
-Use `pull-events.js` to fetch events from all workstreams into the local `.agent-events/` directory:
-```
-node dashboard/lib/pull-events.js
-```
-
-For continuous monitoring, set the `DASHBOARD_GIT_POLL=true` environment variable before starting the dashboard server. This enables automatic 5-second polling that fetches workstream events from the `agent-events` branch and updates the dashboard in real time.
-
-### Event Transport Summary
-
-| Script | When to Use | Example |
-|--------|-------------|----------|
-| `push-events.js --all --wipe` | Session start (architect only) | Clears remote + pushes architect events |
-| `push-events.js --all` | After saving plans, after delegation | Pushes all local event files |
-| `push-events.js --workstream <name>` | Lead agents at gates 3, 4, 7 | Pushes single workstream events |
-| `pull-events.js` | Check on workstream progress | Fetches all remote events locally |
-| `DASHBOARD_GIT_POLL=true` | Continuous monitoring | Auto-polls every 5 seconds |
 
 ## Constraints
 - DO NOT write application code — you design and delegate

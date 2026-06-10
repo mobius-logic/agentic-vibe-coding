@@ -177,7 +177,7 @@ After unit tests pass (Gate 3), leads run integration tests that validate the co
 
 ### Referencing Plans and Architecture Documents
 - All approved architectures and plans live in `.plans/project/` with date-timestamps
-- Template plans (agent protocols, dashboard features) live in `.plans/template/`
+- Template plans (agent protocols) live in `.plans/template/`
 - **Only `@architect` creates or edits files in `.plans/`** — all other agents treat `.plans/` as read-only
 - Team leads log their approved execution details and session summaries in `.agent-logs/project/` (or `.agent-logs/template/` for template work)
 - Architecture documents are prefixed with `architecture-` for easy identification
@@ -200,14 +200,12 @@ After unit tests pass (Gate 3), leads run integration tests that validate the co
 .agent-logs/          # Agent session logs (auto-generated)
 ├── template/         # Template infrastructure logs (synced from upstream)
 └── project/          # Project-specific logs (protected from upstream sync)
-.agent-events/        # Structured agent event logs (JSONL, auto-generated)
 .test-specs/          # Test specifications from @test-lead (auto-generated)
 ├── template/         # Template test specs
 └── project/          # Project-specific test specs (protected from upstream sync)
 .plans/               # Approved plan documents (auto-generated)
 ├── template/         # Template infrastructure plans (synced from upstream)
 └── project/          # Project-specific plans (protected from upstream sync)
-dashboard/            # Agent Monitor Dashboard (web UI)
 scripts/
 ├── sync-template.sh  # Bash sync script (Linux/macOS/Codespaces)
 └── sync-template.ps1 # PowerShell sync script (Windows)
@@ -362,189 +360,6 @@ Approved plans are saved to `.plans/` with date-timestamped filenames:
 - **`template/`** contains plans for the template itself (synced from upstream)
 - **`project/`** contains project-specific plans (protected from upstream sync via `merge=ours`)
 
-## Agent Monitor Dashboard
-
-An optional web-based dashboard that gives you real-time visibility into agent activity — which agents are active, what branches they're working on, task progress, and a live event timeline.
-
-### Quick Start
-
-```bash
-# From your project root
-node dashboard/start.js
-
-# Or open the browser automatically
-node dashboard/start.js --open
-
-# Custom port
-node dashboard/start.js --port 8080
-```
-
-The dashboard opens at **http://127.0.0.1:4820** and auto-refreshes every 3 seconds.
-
-### What It Shows
-
-| Panel | Description |
-|-------|-------------|
-| **Summary Bar** | Active agent count, branch count, task completion, event count |
-| **Agent Cards** | Each agent with status (active/working/completed/idle), current branch, task progress bar |
-| **Branch Status** | All feature/fix branches with their status, last commit, and date |
-| **Plans** | Plans from `.plans/` (template + project) with task completion progress |
-| **Event Timeline** | Chronological feed of all agent events |
-
-### How It Works
-
-The dashboard reads data from three sources — all already part of the template:
-
-1. **`.agent-logs/**/*.md`** — Human-readable session logs (existing, now in template/ and project/ subdirs)
-2. **`.plans/**/*.md`** — Approved plan documents (existing, now in template/ and project/ subdirs)
-3. **Git branches** — Local and remote branch data (existing)
-4. **`.agent-events/events.jsonl`** — Structured machine-readable events (new, optional)
-
-The dashboard **works without any events being emitted** — it still shows git branches, plans, and agent logs. The event stream adds richer real-time data.
-
-### Agent Event Format
-
-Agents can optionally write structured events to `.agent-events/events.jsonl` (one JSON object per line):
-
-```json
-{
-  "ts": "2026-04-09T14:30:22Z",
-  "agent": "backend-lead",
-  "event": "task-completed",
-  "branch": "feature/backend/auth",
-  "plan": ".plans/project/2026-04-09-auth.md",
-  "task": "Implement JWT middleware",
-  "taskIndex": 1,
-  "taskTotal": 5,
-  "status": "in-progress"
-}
-```
-
-**Event types**: `spawned`, `plan-loaded`, `task-started`, `task-completed`, `branch-created`, `branch-pushed`, `subagent-invoked`, `session-complete`, `error`
-
-### Programmatic Event Logging
-
-For agents or scripts running in a Node.js context:
-
-```javascript
-const { logAgentEvent } = require('./dashboard/lib/log-event.js');
-
-logAgentEvent({
-  agent: 'backend-lead',
-  event: 'task-completed',
-  branch: 'feature/backend/auth',
-  task: 'Implement JWT middleware',
-  taskIndex: 1,
-  taskTotal: 5,
-});
-```
-
-### Dashboard Architecture
-
-```
-Browser (localhost:4820)
-  ↕  polling GET /api/*
-Dashboard Server (Node.js, zero dependencies)
-  ↕  reads
-.agent-logs/  .plans/  .agent-events/  git branches
-```
-
-The server is a zero-dependency Node.js HTTP application. No npm install required.
-
-### Dashboard REST API
-
-The dashboard server exposes the following REST API endpoints:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/agents` | GET | Returns array of agents with status (event-based, enriched with filesystem inference) |
-| `/api/branches` | GET | Returns current branch and all branches |
-| `/api/plans` | GET | Returns array of parsed plan documents |
-| `/api/events` | GET | Returns recent events (supports `?limit=N` query param) |
-| `/api/logs` | GET | Returns all agent logs |
-| `/api/logs/:agent` | GET | Returns a specific agent's log |
-| `/api/activity` | GET | Returns filesystem activity snapshot (5s TTL cache) |
-| `/api/summary` | GET | Returns aggregate dashboard summary |
-| `/api/graph` | GET | Returns `{ nodes, edges }` agent relationship graph |
-| `/api/stream` | GET | Server-Sent Events (SSE) stream for real-time event push |
-
-### Agent Event Types
-
-Agents emit structured events via `dashboard/lib/emit-event.js`. The following event types are recognized:
-
-| Event | Purpose | Key Fields |
-|-------|---------|------------|
-| `spawned` | Agent session started (resets prior state, prunes completed agents from graph) | — |
-| `session-start` | Architect-only: resets all dashboard state and starts a fresh session | `--plan` |
-| `task-started` | Agent began a task | `--task`, `--taskIndex`, `--taskTotal` |
-| `task-completed` | Agent finished a task | `--task`, `--status` |
-| `session-complete` | Agent session ended | `--status` |
-| `branch-created` | Agent created a git branch | `--branch` |
-| `question-asked` | Agent asked the user a question | `--detail` |
-| `heartbeat` | Signal that an agent is alive and describe current activity | `--detail`, `--phase` |
-
-#### Heartbeat Events
-
-Agents emit `heartbeat` events periodically (every 15–30s) while actively working. This lets dashboard-only users see real-time activity. Agents with no heartbeat for 60 seconds are downgraded from "working" to "active" status.
-
-The `--phase` argument describes what the agent is currently doing:
-
-| Phase | Meaning |
-|-------|---------|
-| `thinking` | Reasoning / planning |
-| `coding` | Writing or editing code |
-| `searching` | Reading files / searching codebase |
-| `reviewing` | Reviewing code or docs |
-| `waiting` | Waiting for subagent or user |
-| `delegating` | Delegating work to a subagent |
-
-#### Workstream Grouping
-
-When multiple agents work in parallel (e.g. `backend-lead` and `frontend-lead` in separate Codespaces), the dashboard groups them into **workstreams**. Pass `--workstream <name>` on any event to explicitly set the workstream, or it will be inferred from the agent's position in the delegation graph.
-
-#### emit-event.js CLI Usage
-
-```
-node dashboard/lib/emit-event.js <agent> <event> [options]
-```
-
-**Options:**
-
-| Argument | Description |
-|----------|-------------|
-| `--task` | Task description |
-| `--taskIndex` | Current task number (integer) |
-| `--taskTotal` | Total tasks (integer) |
-| `--branch` | Branch name |
-| `--plan` | Plan file path |
-| `--status` | Status string (e.g. `done`) |
-| `--detail` | Human-readable detail (used by `heartbeat` and `question-asked`) |
-| `--phase` | Agent activity phase (`thinking`, `coding`, `searching`, `reviewing`, `waiting`, `delegating`) |
-| `--workstream` | Workstream label for parallel workflow grouping |
-
-**Examples:**
-
-```bash
-# Agent spawned (resets previous session state)
-node dashboard/lib/emit-event.js architect spawned
-
-# Heartbeat with phase
-node dashboard/lib/emit-event.js backend-lead heartbeat --detail "Implementing auth module" --phase coding
-
-# Task started in a named workstream
-node dashboard/lib/emit-event.js backend-lead task-started --task "Implement auth" --workstream backend
-```
-
-### Backward Compatibility
-
-- The dashboard is **purely additive** — no existing files change behavior
-- Existing projects without `dashboard/` are unaffected
-- The dashboard handles missing `.agent-events/` gracefully
-- Agent event logging is **optional** — agents still write their markdown logs as before
-- `.agent-events/` is protected by `.gitattributes` (`merge=ours`) during template sync
-
----
-
 ## Template Inheritance
 
 This repo is designed to be a **living template**: child projects created from it can
@@ -573,11 +388,10 @@ overwriting their project-specific plans, logs, or documentation.
 |---|---|
 | `.github/agents/` | `.plans/project/` (protected) |
 | `.github/hooks/` | `.agent-logs/project/` (protected) |
-| `.github/prompts/` | `.agent-events/` (protected) |
-| `.github/instructions/` | `README.md` (protected) |
-| `.github/copilot-instructions.md` | All project source code (protected) |
-| `.devcontainer/` | `.plans/template/` (removed after sync) |
-| `dashboard/` | `.agent-logs/template/` (removed after sync) |
+| `.github/prompts/` | `README.md` (protected) |
+| `.github/instructions/` | All project source code (protected) |
+| `.github/copilot-instructions.md` | `.plans/template/` (removed after sync) |
+| `.devcontainer/` | `.agent-logs/template/` (removed after sync) |
 | `TEMPLATE-GUIDE.md` | |
 | `scripts/` | |
 

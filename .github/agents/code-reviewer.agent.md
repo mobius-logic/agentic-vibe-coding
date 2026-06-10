@@ -28,7 +28,6 @@ If you find a bug or issue, document it in your review verdict. Do NOT fix it yo
 
 Your `execute` tool is RESTRICTED to:
 - ✅ `git diff`, `git log`, `git show` for reviewing changes
-- ✅ `node dashboard/lib/emit-event.js` for dashboard events
 - ✅ Reading files (cat, type, Get-Content) for review context
 - ✅ Appending to your own session log in `.agent-logs/`
 - ❌ NEVER use `execute` to create, edit, or delete any file
@@ -40,7 +39,6 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 - **Plan Reference**: Path to the `.plans/` file — READ this for architectural context
 - **Branch**: The feature branch to review — use for `git diff main...<branch>`
 - **Lead Agent**: Which lead delegated to you
-- **Workstream**: The workstream name (e.g., `backend`, `frontend`, `infra`) — use this in ALL `emit-event.js` calls
 - **Task**: What to review
 - **Acceptance Criteria**: Standards the code must meet
 - **Context**: Additional constraints or focus areas
@@ -95,20 +93,6 @@ Use this format for each entry:
 ```
 
 Before starting work, READ your memory log to review prior sessions and check for recurring issues.
-
-## Agent Monitor Events (MANDATORY)
-You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
-
-**Session start**: `node dashboard/lib/emit-event.js code-reviewer spawned --parent "<lead-agent>" --workstream {{WORKSTREAM}}`
-**When starting a review**: `node dashboard/lib/emit-event.js code-reviewer task-started --task "Reviewing <branch>" --workstream {{WORKSTREAM}}`
-**When reasoning/analyzing**: `node dashboard/lib/emit-event.js code-reviewer thinking --detail "<brief one-line summary of current reasoning>" --workstream {{WORKSTREAM}}`
-**When review is complete**: `node dashboard/lib/emit-event.js code-reviewer task-completed --task "Review complete" --workstream {{WORKSTREAM}}`
-**Session end**: `node dashboard/lib/emit-event.js code-reviewer session-complete --status done --workstream {{WORKSTREAM}}`
-
-Replace `<lead-agent>` with the name of the lead who delegated to you (e.g., `backend-lead`, `frontend-lead`, `infra-lead`).
-Replace `{{WORKSTREAM}}` with the **Workstream** value from the lead's Delegation Payload (e.g., `backend`, `frontend`, `infra`). If no workstream is provided, omit the `--workstream` flag.
-
-If `dashboard/` does not exist in the project, skip this.
 
 ## Output Format — Mandatory Completion Report
 

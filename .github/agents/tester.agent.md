@@ -32,7 +32,6 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 - **Plan Reference**: Path to the `.plans/project/` file — READ this for feature context
 - **Branch**: The feature branch to test on — verify you are on it
 - **Lead Agent**: Which lead delegated to you
-- **Workstream**: The workstream name (e.g., `backend`, `frontend`, `infra`) — use this in ALL `emit-event.js` calls
 - **Task**: What to test
 - **Acceptance Criteria**: What "tested" looks like
 - **Files to Create/Modify**: Expected test file paths
@@ -145,20 +144,6 @@ Use this format for each entry:
 ```
 
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
-
-## Agent Monitor Events (MANDATORY)
-You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
-
-**Session start**: `node dashboard/lib/emit-event.js tester spawned --parent "<lead-agent>" --workstream {{WORKSTREAM}}`
-**When reasoning/analyzing**: `node dashboard/lib/emit-event.js tester thinking --detail "<brief one-line summary of current reasoning>" --workstream {{WORKSTREAM}}`
-**Task started**: `node dashboard/lib/emit-event.js tester task-started --task "<description>" --workstream {{WORKSTREAM}}`
-**Task completed**: `node dashboard/lib/emit-event.js tester task-completed --task "<description>" --workstream {{WORKSTREAM}}`
-**Session end**: `node dashboard/lib/emit-event.js tester session-complete --status done --workstream {{WORKSTREAM}}`
-
-Replace `<lead-agent>` with the name of the lead who delegated to you (e.g., `backend-lead`, `frontend-lead`, `infra-lead`).
-Replace `{{WORKSTREAM}}` with the **Workstream** value from the lead's Delegation Payload (e.g., `backend`, `frontend`, `infra`). If no workstream is provided, omit the `--workstream` flag.
-
-If `dashboard/` does not exist in the project, skip this.
 
 ## Output Format — Mandatory Completion Report
 

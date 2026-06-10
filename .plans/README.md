@@ -22,7 +22,7 @@ Plans are separated into two subdirectories:
 
 | Directory | Purpose | Synced from upstream? | Protected by `merge=ours`? |
 |-----------|---------|----------------------|---------------------------|
-| `template/` | Plans for the agentic-vibe-coding template infrastructure (dashboard, agents, protocols) | **Template repo only** — removed from project repos during sync | Yes (merge=ours + sync cleanup) |
+| `template/` | Plans for the agentic-vibe-coding template infrastructure (agents, protocols) | **Template repo only** — removed from project repos during sync | Yes (merge=ours + sync cleanup) |
 | `project/` | Architecture and launch plans for the project built with this template | **No** — never overwritten by template sync | **Yes** |
 
 ### Why the separation?

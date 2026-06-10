@@ -22,7 +22,6 @@ When invoked by a team lead, you will receive a **Delegation Payload** containin
 - **Plan Reference**: Path to the `.plans/` file — READ this first for feature context
 - **Branch**: The feature branch you are working on — verify you are on it
 - **Lead Agent**: Which lead delegated to you
-- **Workstream**: The workstream name (e.g., `backend`, `frontend`, `infra`) — use this in ALL `emit-event.js` calls
 - **Task**: What to document
 - **Acceptance Criteria**: What documentation updates are expected
 - **Files to Create/Modify**: Expected documentation file paths
@@ -95,20 +94,6 @@ Use this format for each entry:
 ```
 
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
-
-## Agent Monitor Events (MANDATORY)
-You MUST emit dashboard events so the human can track your progress. Run these in the terminal:
-
-**Session start**: `node dashboard/lib/emit-event.js docs-writer spawned --parent "<lead-agent>" --workstream {{WORKSTREAM}}`
-**When reasoning/analyzing**: `node dashboard/lib/emit-event.js docs-writer thinking --detail "<brief one-line summary of current reasoning>" --workstream {{WORKSTREAM}}`
-**Task started**: `node dashboard/lib/emit-event.js docs-writer task-started --task "<description>" --workstream {{WORKSTREAM}}`
-**Task completed**: `node dashboard/lib/emit-event.js docs-writer task-completed --task "<description>" --workstream {{WORKSTREAM}}`
-**Session end**: `node dashboard/lib/emit-event.js docs-writer session-complete --status done --workstream {{WORKSTREAM}}`
-
-Replace `<lead-agent>` with the name of the lead who delegated to you (e.g., `backend-lead`, `frontend-lead`, `infra-lead`).
-Replace `{{WORKSTREAM}}` with the **Workstream** value from the lead's Delegation Payload (e.g., `backend`, `frontend`, `infra`). If no workstream is provided, omit the `--workstream` flag.
-
-If `dashboard/` does not exist in the project, skip this.
 
 ## Output Format — Mandatory Completion Report
 

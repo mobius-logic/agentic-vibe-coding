@@ -8,7 +8,7 @@ dashboard features, agent protocol changes, workflow infrastructure, etc.
 
 ## What Belongs Here
 
-- Logs from agents working on template infrastructure (dashboard, agent definitions, sync scripts)
+- Logs from agents working on template infrastructure (agent definitions, sync scripts)
 - Session summaries from template-level architectural work
 
 ## What Does NOT Belong Here

@@ -68,7 +68,6 @@ section in the YAML to change this.
 
 - `.plans/project/**`
 - `.agent-logs/project/**`
-- `.agent-events/**`
 - `.test-specs/project/**`
 - `README.md`
 
