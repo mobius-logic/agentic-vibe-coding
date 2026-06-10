@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Mobius Logic, Inc. All rights reserved.
+# PROPRIETARY AND CONFIDENTIAL. Unauthorized copying prohibited.
+
 import sys
 
 file_path = '.github/agents/backend-lead.agent.md'

@@ -1,4 +1,6 @@
-﻿# ──────────────────────────────────────────────────────────────────────────────
+# Copyright (c) 2026 Mobius Logic, Inc. All rights reserved.
+# PROPRIETARY AND CONFIDENTIAL. Unauthorized copying prohibited.
+# ──────────────────────────────────────────────────────────────────────────────
 # Template Sync — Azure Pipelines equivalent of .github/workflows/sync-template.yml
 #
 # Creates a PR in the child repo when the upstream template mirror has updates.

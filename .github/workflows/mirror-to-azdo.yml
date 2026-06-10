@@ -1,4 +1,6 @@
-﻿# ──────────────────────────────────────────────────────────────────────────────
+# Copyright (c) 2026 Mobius Logic, Inc. All rights reserved.
+# PROPRIETARY AND CONFIDENTIAL. Unauthorized copying prohibited.
+# ──────────────────────────────────────────────────────────────────────────────
 # Mirror to Azure DevOps — Pushes template main branch to Azure DevOps mirror
 #
 # This keeps the Azure DevOps mirror repo in sync with the canonical GitHub repo.

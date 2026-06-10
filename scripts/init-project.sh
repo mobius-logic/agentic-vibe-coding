@@ -1,4 +1,6 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
+# Copyright (c) 2026 Mobius Logic, Inc. All rights reserved.
+# PROPRIETARY AND CONFIDENTIAL. Unauthorized copying prohibited.
 # ──────────────────────────────────────────────────────────────────────────────
 # init-project.sh — Create a new project repo from the template on any platform
 #
