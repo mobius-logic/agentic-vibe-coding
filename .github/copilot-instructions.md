@@ -157,6 +157,7 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 | 2 | Implementation | `@developer` returns completion report |
 | 2.5 | Test Spec Readiness | Test-lead specs EXIST for workstream (NO FALLBACK — leads BLOCK if missing) |
 | 3 | Testing (Plan Compliance) | `@tester` returns "ALL PASS" AND all spec cases covered |
+| 3.5 | Integration Testing | `@tester` returns ALL e2e scenarios passing (MANDATORY when spec includes e2e) |
 | 4 | Code Review | `@code-reviewer` returns verdict "APPROVE" |
 | 5 | Documentation | `@docs-writer` returns completion report |
 | 6 | Pre-Commit Checklist | All 8 checkboxes verified TRUE |
@@ -181,6 +182,16 @@ Non-coding agents must NEVER use the `execute` tool to create, edit, or delete a
 - Tests MUST PASS before any branch can be committed (Gate 6 hard requirement)
 - Test failures mean the DEVELOPER's code deviates from the plan — the developer must fix code to match the plan, not the tester weakening tests
 - All test specs from @test-lead must have corresponding test implementations that pass before merge
+
+### Integration Testing (MANDATORY for Non-Trivial Features)
+- Test-lead specs MUST include end-to-end integration test scenarios for any feature that spans multiple modules or has user-facing workflows
+- Integration tests validate the COMPLETE feature works as the architect planned — not just individual modules in isolation
+- Integration tests MUST be runnable locally (preferred) or via CI pipeline (justified exception only)
+- Integration tests run at Gate 3.5 — AFTER unit tests pass (Gate 3) and BEFORE code review (Gate 4)
+- Failed integration tests are escalated to the lead + human before re-entering the fix cycle (unlike unit test failures which loop directly)
+- Gate 3.5 is MANDATORY when the test spec includes e2e scenarios — it cannot be skipped
+- Integration test failures may indicate architectural issues — the lead must assess whether the developer's code needs fixing OR the plan itself needs revision (with architect consultation)
+- Each integration test must be self-contained: install prerequisites, set up environment, run scenario, assert end state, tear down
 
 ## Subagent Unavailable Fallback
 

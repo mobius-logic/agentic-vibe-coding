@@ -263,8 +263,14 @@ Define ALL inter-workstream interfaces so workstreams can develop independently.
 ### Integration Test Requirements
 <API test scenarios, database interaction tests>
 
-### End-to-End Test Requirements
-<User flow scenarios with step-by-step actions and expected results>
+### End-to-End Integration Test Scenarios
+<Complete user flows that exercise the full feature across all components. These become the basis for Gate 3.5 integration testing.>
+
+| Scenario | Components Involved | Prerequisites | User Steps | Expected Outcome |
+|----------|-------------------|---------------|------------|------------------|
+| <flow-name> | <modules/services exercised> | <what must be running> | <step-by-step actions> | <final system state> |
+
+> **Note for test-lead**: These scenarios are your PRIMARY input for the "End-to-End Integration Tests" section of test specs. Each scenario here should map to a runnable integration test.
 
 ## Expected Output Manifest
 

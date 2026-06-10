@@ -220,6 +220,27 @@ You MUST follow these gates in exact order. No gate may be skipped. If a gate fa
 20. Push events to remote: `node dashboard/lib/push-events.js --workstream infra`
 21. 🛑 **If tests fail**: This means the developer's code DEVIATES from the architect's plan. Loop back to GATE 2 — invoke @developer to fix the code to match the plan specification (do NOT ask @tester to weaken the tests). Then re-run GATE 3.
 
+#### GATE 3.5: Integration Testing — End-to-End Plan Validation (MANDATORY if spec includes e2e tests)
+- Check the test spec's "End-to-End Integration Tests" section
+- **If e2e scenarios exist** (expected for any non-trivial feature):
+  1. Invoke `@tester` with a SECOND delegation specifically for integration tests:
+     - **Task**: "Implement and run end-to-end integration tests from the test spec. Install all prerequisites, set up the full environment, and run complete user-flow scenarios that validate the feature works as the architect planned."
+     - **Test Specs Reference** (REQUIRED): same `.test-specs/` file — focus on the "End-to-End Integration Tests" section
+     - **Primary Directive**: "These tests validate the COMPLETE feature works end-to-end. Set up the full environment locally (preferred). Create a CI workflow only if local execution is genuinely not feasible for a scenario. Every scenario in the spec must be implemented and passing."
+     - **Acceptance Criteria**: ALL e2e scenarios from the spec pass locally OR CI workflow created and passing for CI-required scenarios
+  2. Emit dashboard event: `subagent-invoked --detail "@tester: e2e integration testing for <scope>"`
+  3. **Read the tester's integration test completion report** and verify:
+     - ALL scenarios from the spec are implemented
+     - ALL scenarios pass (locally or via CI)
+     - Integration test command documented
+  4. **Gate check**: All e2e integration test scenarios pass
+  5. 🛑 **If integration tests fail**:
+     - This indicates a systemic issue — the feature does not work end-to-end as planned
+     - Emit event: `node dashboard/lib/emit-event.js infra-lead integration-test-failure --detail "E2E scenario '<name>' failed: <brief reason>" --workstream infra`
+     - **Escalate to human**: "**INTEGRATION TEST FAILURE**: End-to-end scenario '<name>' failed. This may indicate the implementation does not satisfy the architect's plan as a whole, or that cross-module integration is broken. Requesting guidance."
+     - **With human approval**: Loop back to GATE 2 — invoke @developer with specific integration fix instructions. After fix, re-run GATE 3 (unit tests) AND GATE 3.5 (integration tests). Do NOT skip re-validation.
+- **If no e2e section exists in the spec** (trivial/isolated change): Note in Gate 6 checklist why integration tests are not applicable (e.g., "documentation-only change", "single utility function with no integration points").
+
 #### GATE 4: Code Review (MANDATORY — cannot skip)
 21. Invoke `@code-reviewer` with the **Delegation Payload** including:
     - Branch name for `git diff main...<branch>`
@@ -254,6 +275,7 @@ Before committing, verify every item:
 - [ ] All dashboard events emitted for every gate
 - [ ] Test specs from @test-lead EXIST for this workstream (REQUIRED — no fallback)
 - [ ] ALL test cases from test spec implemented and passing (plan-compliance verified)
+- [ ] Integration tests pass (Gate 3.5) OR documented as not applicable with justification
 - [ ] Test documentation included by @docs-writer
 
 🛑 **If ANY checkbox is FALSE**: Do NOT commit. Go back and complete the missing gate.

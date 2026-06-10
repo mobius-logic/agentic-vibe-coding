@@ -59,6 +59,60 @@ Before writing any tests, confirm you have read the plan reference, the test-lea
 - USE the project's existing test framework and utilities
 - WRITE descriptive test names that explain the scenario
 
+## Integration Test Implementation
+
+When the test spec includes "End-to-End Integration Tests", you MUST implement them as runnable test suites. Integration tests validate the COMPLETE feature works end-to-end as the architect planned.
+
+### Local Execution (PREFERRED — Default Choice)
+1. Create a dedicated integration test directory (e.g., `tests/integration/`, `test/e2e/`, or `__tests__/integration/`)
+2. Include a setup script or test fixture that:
+   - Checks for and installs prerequisites (tools, packages, services)
+   - Starts required services (use docker-compose, local servers, in-memory databases, mocks)
+   - Seeds test data as specified in the test spec
+3. Implement each scenario from the spec as a test case that:
+   - Follows the EXACT steps listed in the spec
+   - Asserts the expected end state at each checkpoint
+   - Is idempotent (can run repeatedly without manual cleanup)
+4. Include teardown that stops services and cleans up all resources
+5. Create a dedicated test command (e.g., in package.json: `"test:integration": "..."`, or in Makefile/scripts)
+
+### CI Pipeline (ONLY When Local Execution Is Not Feasible)
+If a scenario requires infrastructure that genuinely cannot run locally (e.g., cloud-only services with no emulator, hardware-specific tests), you MUST:
+1. Document clearly WHY local execution is not possible
+2. Create a CI workflow file (e.g., `.github/workflows/integration-tests.yml`)
+3. The workflow must:
+   - Install all prerequisites
+   - Run the integration test suite
+   - Be triggerable manually (`workflow_dispatch`) AND on pull requests
+   - Report results clearly (pass/fail with scenario names)
+4. Add a note in the test file pointing to the CI workflow
+
+### Integration Test Conventions (MANDATORY)
+- Integration tests MUST be tagged/labeled so they run SEPARATELY from unit tests
+- Use a dedicated test command distinct from the unit test command:
+  - Node.js: `npm run test:integration` or `npx jest --testPathPattern=integration`
+  - Python: `pytest tests/integration/` or `pytest -m integration`
+  - Go: `go test -tags=integration ./...`
+  - .NET: `dotnet test --filter Category=Integration`
+- Integration tests may have longer timeouts than unit tests (configure appropriately)
+- Each test must be independent — no ordering dependencies between scenarios
+- Tests must create and destroy their own state (no shared mutable fixtures between tests)
+- Include a README or inline comments explaining how to run integration tests locally
+
+### Integration Test Completion Report Addition
+When reporting integration test results, add to your completion report:
+
+```
+### Integration Test Results
+| Scenario (from spec) | Execution | Setup | Steps Passed | End State Verified | Result |
+|---------------------|-----------|-------|--------------|-------------------|--------|
+| <scenario-name>     | Local/CI  | OK/Failed | X of Y | Yes/No | Pass/Fail |
+
+- **Integration Test Command**: <exact command to reproduce>
+- **Prerequisites Verified**: <list of checked prerequisites>
+- **CI Workflow Created**: Yes (path) / No (local only) / N/A
+```
+
 ## Agent Memory Log
 
 Agent logs are separated by context:

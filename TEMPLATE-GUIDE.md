@@ -163,6 +163,18 @@ After the architect produces plans and BEFORE leads start their workstreams:
 
 > **Hard requirement**: Leads will BLOCK at Gate 2.5 if test specs don't exist. There is no fallback. The architect must ensure test-lead runs first.
 
+#### Integration Testing (Gate 3.5)
+
+After unit tests pass (Gate 3), leads run integration tests that validate the complete feature end-to-end:
+
+1. The tester implements scenarios from the test spec's "End-to-End Integration Tests" section
+2. Integration tests install prerequisites, set up the environment, run full user flows, and verify the expected end state
+3. **Local execution is preferred** — integration tests should run on the developer's machine or Codespace without CI infrastructure
+4. CI pipelines are created only when local execution is genuinely not feasible (must be justified)
+5. **Failed integration tests escalate to the lead + human** — unlike unit test failures, integration failures may indicate cross-module or architectural issues that need human judgment
+
+> **Key difference from unit tests**: Unit tests (Gate 3) validate individual modules match the plan. Integration tests (Gate 3.5) validate that the modules work TOGETHER as the plan intended. Both must pass before code review.
+
 ### Referencing Plans and Architecture Documents
 - All approved architectures and plans live in `.plans/project/` with date-timestamps
 - Template plans (agent protocols, dashboard features) live in `.plans/template/`
@@ -316,6 +328,7 @@ The Launch Plan's "Sequential Fallback Order" section gives you the exact sequen
 | Agent says "done" | Check `git log`, skim files, then `git push origin <branch>` |
 | Agent made a mistake | Tell it what's wrong in the same chat session |
 | Tests fail | Tell the agent "tests are failing, fix them" |
+| Integration tests fail (Gate 3.5) | Lead escalates to you — assess if it's a code fix or an architectural issue. Approve re-entry to Gate 2 for fixes. |
 | Agent asks a question | Answer it — you're the product owner |
 | Need to reference prior work | Check `.plans/project/` for architecture docs and approved plans, `.agent-logs/project/` for session logs |
 | Merge conflict | `git fetch origin && git rebase origin/main` on the conflicting branch |
