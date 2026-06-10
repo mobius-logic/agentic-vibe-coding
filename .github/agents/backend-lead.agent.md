@@ -310,6 +310,8 @@ Use this format for each entry:
 
 **NOTE**: Since you do not have the `edit` tool, use the terminal append commands shown in the "Writing Your Session Log" section above.
 
+**NOTE**: Since you do not have the `edit` tool, use the terminal append commands shown in the "Writing Your Session Log" section above.
+
 Before starting work, READ your memory log to review prior sessions and avoid repeating mistakes.
 
 ## Agent Monitor Events (MANDATORY)
@@ -374,5 +376,7 @@ Emit events generously — every meaningful step should be logged so the dashboa
 - DO NOT create or edit files in `.plans/` — only `@architect` writes plans
 - ALWAYS read the relevant `.plans/` file to understand the architectural context
 - Keep each feature branch focused on one concern
+- You do NOT have the `edit` tool — delegate all file creation/modification to sub-agents
+- Before EVERY action, verify: "Is this my job or a sub-agent's job?" If sub-agent's, invoke via `runSubagent`
 - You do NOT have the `edit` tool — delegate all file creation/modification to sub-agents
 - Before EVERY action, verify: "Is this my job or a sub-agent's job?" If sub-agent's, invoke via `runSubagent`

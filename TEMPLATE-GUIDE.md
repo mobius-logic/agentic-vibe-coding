@@ -49,6 +49,23 @@ collaborate across Git branches to produce a working product. Each agent has a d
 │  └──────────┘  └──────────┘                                 │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Setup & Customization
+
+### Adapting This Template for Your Project
+
+1. Use **"Use this template"** on GitHub to create a new repo (see [Template Inheritance](#template-inheritance) below)
+2. Update `README.md` with **your** project's name, description, and usage instructions
+3. Keep `TEMPLATE-GUIDE.md` as a reference for how the agentic workflow operates
+4. Customize agent definitions in `.github/agents/` for your tech stack
+5. Start invoking agents — they will update `README.md` with project-specific docs as they build
+
+### Customizing Agent Behavior
+
+- Edit `.github/agents/*.agent.md` to tune agent behavior for your tech stack
+- Edit `.github/copilot-instructions.md` for your project's conventions
+- Add `.github/instructions/*.instructions.md` for language/framework-specific rules
+
 ## Quick Start
 
 ### In VS Code (Local)
@@ -507,21 +524,6 @@ node dashboard/lib/emit-event.js backend-lead task-started --task "Implement aut
 - The dashboard handles missing `.agent-events/` gracefully
 - Agent event logging is **optional** — agents still write their markdown logs as before
 - `.agent-events/` is protected by `.gitattributes` (`merge=ours`) during template sync
-
-## Customization
-
-- Edit `.github/agents/*.agent.md` to tune agent behavior for your tech stack
-- Edit `.github/copilot-instructions.md` for your project's conventions
-- Add `.github/instructions/*.instructions.md` for language/framework-specific rules
-- See [AGENTIC-TEAM-SETUP-GUIDE.md](AGENTIC-TEAM-SETUP-GUIDE.md) for the full setup guide
-
-## Adapting This Template for Your Project
-
-1. Use **"Use this template"** on GitHub to create a new repo (see [Template Inheritance](#template-inheritance) below)
-2. Update `README.md` with **your** project's name, description, and usage instructions
-3. Keep `TEMPLATE-GUIDE.md` as a reference for how the agentic workflow operates
-4. Customize agent definitions in `.github/agents/` for your tech stack
-5. Start invoking agents — they will update `README.md` with project-specific docs as they build
 
 ---
 
